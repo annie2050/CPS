@@ -1,22 +1,25 @@
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-const JWT_SECRET = 'cps-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'kjfawgefawgefgwuet7wefweyu7ew7fte7tf';
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+// Simple JWT auth middleware for protected routes
+const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+    return res.status(401).json({ success: false, message: 'No token provided.' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
-    req.user = user;
-    next();
-  });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    return next();
+  } catch (err) {
+    console.error('JWT verify error:', err.message);
+    return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+  }
 };
 
-module.exports = { JWT_SECRET, authenticateToken };
+module.exports = { JWT_SECRET, protect };

@@ -1,40 +1,51 @@
 const express = require('express');
 const cors = require('cors');
-const { poolPromise, isDbConnected } = require('./config/db');
-const authRoutes = require('./routes/auth');
+const dotenv = require('dotenv');
+const { connectDB } = require('./config/db');
+
+dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// ─── Middleware ──────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/auth', authRoutes);
+// ─── Routes ──────────────────────────────────────────────────────────────────
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
+// Health check
 app.get('/api/health', (req, res) => {
-  const dbStatus = isDbConnected();
-  res.json({ 
-    status: 'ok', 
-    message: 'Customer Portal Service is running',
-    database: dbStatus ? 'connected' : 'not connected'
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-async function startServer() {
-  try {
-    await poolPromise;
-    console.log('Connected to SQL Server');
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found.' });
+});
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.stack);
+  res.status(500).json({ success: false, message: 'Internal server error.' });
+});
 
-  } catch (err) {
-    console.error('Database connection failed:', err);
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT} (without database)`);
-    });
-  }
-}
+// ─── Start ───────────────────────────────────────────────────────────────────
+const start = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/api/health`);
+  });
+};
 
-startServer();
+start();
