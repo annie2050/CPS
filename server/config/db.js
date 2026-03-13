@@ -1,9 +1,7 @@
 const sql = require('mssql');
 
-let isDbConnected = false;
-
 const config = {
-  server: 'localhost',
+  server: 'NEELUPC\\CLIENT1',
   port: 57805,
   user: 'sa',
   password: 'Guljag#123',
@@ -14,25 +12,25 @@ const config = {
   }
 };
 
-// sql.connect(config)
-//   .then(() => console.log("Connected"))
-//   .catch(err => console.log(err));
+let isConnected = false;
 
 const poolPromise = new sql.ConnectionPool(config)
   .connect()
   .then(pool => {
-    isDbConnected = true;
+    isConnected = true;
     console.log('Connected to SQL Server');
     return pool;
   })
   .catch(err => {
-    isDbConnected = false;
-    console.log('Server running. Database not connected.');
-    console.log('Error:', err.message);
+    console.error('Database connection error:', err);
+    isConnected = false;
+    return Promise.reject(err);
   });
+
+const isDbConnected = () => isConnected;
 
 module.exports = {
   sql,
   poolPromise,
-  isDbConnected: () => isDbConnected
+  isDbConnected
 };
