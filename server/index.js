@@ -30,7 +30,13 @@ app.get('/api/health', (req, res) => {
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found.' });
+  console.warn(`404 ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    message: 'Route not found.',
+    method: req.method,
+    path: req.originalUrl,
+  });
 });
 
 // Global error handler
@@ -41,7 +47,12 @@ app.use((err, req, res, next) => {
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 const start = async () => {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('Failed to connect to database. Server will start without DB:', err.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/api/health`);

@@ -1,0 +1,325 @@
+.obd-wrap {
+  margin-block-start: 24px;
+}
+
+.obd-header {
+  margin-block-end: 14px;
+}
+
+.obd-title {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+}
+
+.obd-subtitle {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.obd-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .obd-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.obd-metric-card {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.obd-metric-label {
+  color: #6b7280;
+  font-size: 12px;
+  margin-block-end: 6px;
+}
+
+.obd-metric-value {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.obd-filters {
+  margin-block-start: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.obd-filter-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.obd-btn {
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  background: white;
+  color: #111827;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.obd-btn:hover {
+  background: rgba(102, 126, 234, 0.08);
+  border-color: rgba(102, 126, 234, 0.35);
+}
+
+.obd-btn.is-active {
+  background: rgba(102, 126, 234, 0.12);
+  border-color: rgba(102, 126, 234, 0.6);
+}
+
+.obd-search-input {
+  inline-size: min(420px, 90vw);
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  background: white;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.obd-chart-card {
+  margin-block-start: 16px;
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.obd-chart-title {
+  color: #111827;
+  font-weight: 700;
+  font-size: 14px;
+  margin-block-end: 10px;
+}
+
+.obd-chart {
+  block-size: 260px;
+}
+
+.obd-grid {
+  margin-block-start: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.obd-order-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.15s;
+  outline: none;
+}
+
+.obd-order-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(102, 126, 234, 0.35);
+}
+
+.obd-order-card.is-selected {
+  border-color: rgba(102, 126, 234, 0.9);
+}
+
+.obd-order-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-block-end: 10px;
+}
+
+.obd-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(102, 126, 234, 0.14);
+  color: #2b3aa8;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.obd-date {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.obd-product {
+  color: #111827;
+  font-weight: 800;
+  font-size: 15px;
+  margin-block-end: 4px;
+}
+
+.obd-branch {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.obd-order-bottom {
+  margin-block-start: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.obd-qty {
+  color: #111827;
+  font-size: 14px;
+}
+
+.obd-qty-value {
+  font-weight: 800;
+}
+
+.obd-qty-unit {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.obd-pill {
+  background: rgba(17, 24, 39, 0.06);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  color: #374151;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.obd-details {
+  margin-block-start: 12px;
+  background: rgba(17, 24, 39, 0.03);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.obd-details-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-block-end: 10px;
+}
+
+.obd-details-title {
+  font-weight: 800;
+  color: #111827;
+  font-size: 13px;
+}
+
+.obd-close {
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  background: white;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.obd-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  color: #374151;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .obd-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.obd-details-grid span {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.obd-empty {
+  margin-block-start: 16px;
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.obd-empty-title {
+  font-weight: 800;
+  color: #111827;
+  margin-block-end: 6px;
+}
+
+.obd-empty-subtitle {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.obd-skeleton-card,
+.obd-skeleton-order {
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(17, 24, 39, 0.06) 0%,
+    rgba(17, 24, 39, 0.11) 50%,
+    rgba(17, 24, 39, 0.06) 100%
+  );
+  background-size: 200% 100%;
+  animation: obd-shimmer 1.2s ease-in-out infinite;
+}
+
+.obd-skeleton-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-block-start: 10px;
+}
+
+.obd-skeleton-card {
+  block-size: 72px;
+}
+
+.obd-skeleton-grid {
+  margin-block-start: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.obd-skeleton-order {
+  block-size: 130px;
+}
+
+@keyframes obd-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+

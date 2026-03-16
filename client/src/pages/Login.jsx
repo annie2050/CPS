@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
 
-function Login() {
+function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -31,7 +31,8 @@ function Login() {
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      navigate('/dashboard')
+      onLogin?.(data.token)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err.message)
     } finally {

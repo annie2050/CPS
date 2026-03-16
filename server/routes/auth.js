@@ -22,7 +22,15 @@ router.post('/login', async (req, res) => {
     
     const result = await pool.request()
       .input('email', sql.VarChar, email)
-      .query('SELECT * FROM sm19 WHERE sm19_17 = @email');
+      .query(`
+        SELECT
+          unqid AS id,
+          sm19_17 AS email,
+          sm19_5  AS name,
+          sm19_12 AS password
+        FROM sm19
+        WHERE sm19_17 = @email
+      `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -30,12 +38,12 @@ router.post('/login', async (req, res) => {
 
     const user = result.recordset[0];
 
-    if (user.sm19_12 !== password) {
+    if (user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const token = jwt.sign(
-      { id: user.sm19_recid, email: user.sm19_17, name: user.sm19_5 },
+      { id: user.id, email: user.email, name: user.name },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -44,9 +52,9 @@ router.post('/login', async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: user.sm19_recid,
-        email: user.sm19_17,
-        name: user.sm19_5
+        id: user.id,
+        email: user.email,
+        name: user.name
       }
     });
 

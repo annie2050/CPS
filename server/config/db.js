@@ -1,56 +1,51 @@
 const sql = require('mssql');
+require('dotenv').config();
 
-// Prefer environment variables, fall back to existing defaults for local dev
-const config = {
-  server: process.env.DB_SERVER || 'NEELUPC\\CLIENT1',
-  port: Number(process.env.DB_PORT) || 57805,
+const sqlConfig = {
   user: process.env.DB_USER || 'sa',
   password: process.env.DB_PASSWORD || 'Guljag#123',
+  server: process.env.DB_SERVER || '144.143.142.7',
+  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 57805,
   database: process.env.DB_NAME || 'ac25',
   options: {
-    encrypt: false,
+    encrypt: process.env.DB_ENCRYPT ? process.env.DB_ENCRYPT === 'true' : false,
     trustServerCertificate: true,
+    enableArithAbort: true,
+  },
+  pool: {
+    max: process.env.DB_POOL_MAX ? Number(process.env.DB_POOL_MAX) : 10,
+    min: process.env.DB_POOL_MIN ? Number(process.env.DB_POOL_MIN) : 0,
+    idleTimeoutMillis: process.env.DB_POOL_IDLE_MS ? Number(process.env.DB_POOL_IDLE_MS) : 30000,
   },
 };
 
-let isConnected = false;
-let pool = null;
+let _isConnected = false;
 
-const poolPromise = new sql.ConnectionPool(config)
+// Use a single shared connection pool promise across the app.
+const poolPromise = new sql.ConnectionPool(sqlConfig)
   .connect()
-  .then((p) => {
-    isConnected = true;
-    pool = p;
-    console.log('Connected to SQL Server');
-    return p;
+  .then((pool) => {
+    _isConnected = true;
+    console.log('✅ Connected to MSSQL');
+    return pool;
   })
   .catch((err) => {
-    console.error('Database connection error:', err);
-    isConnected = false;
-    return Promise.reject(err);
+    _isConnected = false;
+    console.error('❌ DB error:', err?.message || err);
+    // Allow app to boot; routes can check isDbConnected()
+    return null;
   });
 
-const isDbConnected = () => isConnected;
-
-const connectDB = async () => {
-  if (pool) {
-    return pool;
-  }
-  pool = await poolPromise;
-  return pool;
-};
-
-const getPool = () => {
+async function connectDB() {
+  const pool = await poolPromise;
   if (!pool) {
-    throw new Error('Database pool not initialized. Call connectDB() first.');
+    throw new Error('Database connection unavailable');
   }
   return pool;
-};
+}
 
-module.exports = {
-  sql,
-  poolPromise,
-  connectDB,
-  getPool,
-  isDbConnected,
-};
+function isDbConnected() {
+  return _isConnected;
+}
+
+module.exports = { sql, poolPromise, connectDB, isDbConnected };
