@@ -77,7 +77,7 @@ function Dashboard({ onLogout }) {
             <h3>Profile</h3>
             <p>Email: {user?.email}</p>
             <p>Name: {user?.name || 'Not set'}</p>
-            <p>Customer GUID: {user?.id || '—'}</p>
+          
 
           </div>
           <div className="stat-card">
