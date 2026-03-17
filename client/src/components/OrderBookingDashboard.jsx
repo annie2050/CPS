@@ -105,7 +105,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
           <div className="obd-summary-value">{formatNumber(dashboardData?.TOTAL_ORDERS)}</div>
         </div>
         <div className="obd-summary-card">
-          <div className="obd-summary-label">Pending Orders (Qty)</div>
+          <div className="obd-summary-label">Pending Orders</div>
           <div className="obd-summary-value">{formatNumber(dashboardData?.PENDING_ORDERS)}</div>
         </div>
         <div className="obd-summary-card">
