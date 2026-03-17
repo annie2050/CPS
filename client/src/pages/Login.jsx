@@ -23,7 +23,14 @@ function Login({ onLogin }) {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
+      const text = await response.text()
+      console.log('Login response status:', response.status, 'body:', text)
+      
+      if (!text || text.trim() === '') {
+        throw new Error('Server returned empty response')
+      }
+
+      const data = JSON.parse(text)
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed')
@@ -34,7 +41,8 @@ function Login({ onLogin }) {
       onLogin?.(data.token)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.message)
+      console.error('Login error:', err)
+      setError('Login failed: ' + err.message)
     } finally {
       setLoading(false)
     }

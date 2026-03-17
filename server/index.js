@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -18,6 +18,12 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
@@ -43,6 +49,15 @@ app.use('*', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.stack);
   res.status(500).json({ success: false, message: 'Internal server error.' });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // ─── Start ───────────────────────────────────────────────────────────────────

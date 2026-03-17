@@ -8,8 +8,17 @@ const router = express.Router();
 
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt:', req.body?.email);
+    
     if (!isDbConnected()) {
+      console.error('Database not connected during login');
       return res.status(503).json({ error: 'Database not connected. Please try again later.' });
+    }
+
+    const pool = await poolPromise;
+    if (!pool) {
+      console.error('Pool is null during login');
+      return res.status(503).json({ error: 'Database connection unavailable.' });
     }
 
     const { email, password } = req.body;
@@ -17,8 +26,6 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-
-    const pool = await poolPromise;
     
     const result = await pool.request()
       .input('email', sql.VarChar, email)
@@ -33,6 +40,7 @@ router.post('/login', async (req, res) => {
       `);
 
     if (result.recordset.length === 0) {
+      console.log('No user found for email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -48,7 +56,8 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    res.json({
+    console.log('Login successful for:', email);
+    return res.json({
       message: 'Login successful',
       token,
       user: {
@@ -60,7 +69,7 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error during login' });
+    return res.status(500).json({ error: 'Server error during login' });
   }
 });
 

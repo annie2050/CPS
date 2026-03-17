@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import './Dashboard.css'
+import Sidebar from '../components/Sidebar'
 import OrderBookingDashboard from '../components/OrderBookingDashboard'
 
 function Dashboard({ onLogout }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('user')
+    return userData ? JSON.parse(userData) : null
+  })
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [activePage, setActivePage] = useState('dashboard')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.pathname === '/orderbooking') {
+      navigate('/orderbooking', { replace: true })
+    }
+  }, [location.pathname, navigate])
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
-
-    console.log(userData);
+    console.log('User data from localStorage:', userData)
     if (userData) {
       setUser(JSON.parse(userData))
     }
@@ -26,6 +37,7 @@ function Dashboard({ onLogout }) {
 
   return (
     <div className="dashboard-container">
+      <Sidebar activePage={activePage} />
       <nav className="dashboard-nav">
         <h2>Customer Portal</h2>
         <div className="nav-user">
@@ -67,22 +79,24 @@ function Dashboard({ onLogout }) {
       )}
 
       <main className="dashboard-content">
-        <div className="welcome-card">
-          <h1>Welcome to Customer Portal</h1>
-          <p>You have successfully logged in.</p>
-        </div>
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h3>Profile</h3>
-            <p>Email: {user?.email}</p>
-            <p>Name: {user?.name || 'Not set'}</p>
-          
-
+        <div className="dashboard-header">
+          <div className="welcome-card">
+            <h1>Welcome to Customer Portal</h1>
+            <p>You have successfully logged in.</p>
           </div>
-          <div className="stat-card">
-            <h3>Status</h3>
-            <p className="status-active">Active</p>
+          
+          <div className="quick-actions-card">
+            <h3>Quick Actions</h3>
+            <div className="quick-actions">
+              <button className="quick-action-btn primary" onClick={() => navigate('/orderbooking')}>
+                <span className="quick-action-icon">➕</span>
+                <span className="quick-action-text">New Order</span>
+              </button>
+              <button className="quick-action-btn" onClick={() => navigate('/dashboard')}>
+                <span className="quick-action-icon">📊</span>
+                <span className="quick-action-text">View Orders</span>
+              </button>
+            </div>
           </div>
         </div>
 

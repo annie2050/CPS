@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import OrderBooking from './pages/OrderBooking'
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('token'))
@@ -45,6 +46,16 @@ function App() {
           element={
             isAuthenticated ? (
               <Dashboard onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/orderbooking" 
+          element={
+            isAuthenticated ? (
+              <OrderBooking />
             ) : (
               <Navigate to="/login" replace />
             )
