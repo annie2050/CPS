@@ -93,7 +93,94 @@ function OrderBookingForm({ customerGuid, customerName }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    console.log('handleChange:', name, 'value:', JSON.stringify(value))
     setFormData((prev) => ({ ...prev, [name]: value }))
+
+    if (name === 'productGuid' && value) {
+      // Clean the value - remove any surrounding quotes
+      const cleanValue = String(value).replace(/^['"]+|['"]+$/g, '')
+      console.log('Fetching details for product:', cleanValue)
+      fetchProductDetails(cleanValue)
+    }
+  }
+
+  const fetchProductDetails = async (productGuid) => {
+    try {
+      const token = localStorage.getItem('token')
+      console.log('Token:', token ? 'exists' : 'missing')
+      
+      const res = await fetch(
+        `/api/dashboard/product-details?productGuid=${productGuid}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      const data = await res.json()
+      console.log('API Response:', data)
+      
+      if (data.success && data.details) {
+        console.log('Details received:', data.details)
+        const updates = {
+          manuGuid: data.details.manufactureid || '',
+          categoryGuid: data.details.categoryunqid || '',
+          unitGuid: data.details.unit || '',
+        }
+        console.log('Setting formData:', updates)
+        setFormData((prev) => ({ ...prev, ...updates }))
+        // Ensure option lists contain the returned IDs for reliable binding
+        if (data.details.manufactureid && data.details.manufacurename) {
+          setManufacturers((prev) => {
+            const exists = prev?.some((m) => m.unqid === data.details.manufactureid)
+            if (!exists) return [...prev, { unqid: data.details.manufactureid, manuName: data.details.manufacurename }]
+            return prev
+          })
+        }
+        if (data.details.categoryunqid && data.details.category) {
+          setCategories((prev) => {
+            const exists = prev?.some((c) => c.unqid === data.details.categoryunqid)
+            if (!exists) return [...prev, { unqid: data.details.categoryunqid, category: data.details.category }]
+            return prev
+          })
+        }
+        if (data.details.unit && data.details.unitname) {
+          setUnits((prev) => {
+            const exists = prev?.some((u) => u.unqid === data.details.unit)
+            if (!exists) return [...prev, { unqid: data.details.unit, unitName: data.details.unitname }]
+            return prev
+          })
+        }
+        // Ensure dropdowns have the returned IDs as options (fallback UX)
+        if (data.details.manufactureid && data.details.manufacurename) {
+          setManufacturers((prev) => {
+            const exists = prev?.some((m) => m.unqid === data.details.manufactureid)
+            if (!exists) return [...prev, { unqid: data.details.manufactureid, manuName: data.details.manufacurename }]
+            return prev
+          })
+        }
+        if (data.details.categoryunqid && data.details.category) {
+          setCategories((prev) => {
+            const exists = prev?.some((c) => c.unqid === data.details.categoryunqid)
+            if (!exists) return [...prev, { unqid: data.details.categoryunqid, category: data.details.category }]
+            return prev
+          })
+        }
+        if (data.details.unit && data.details.unitname) {
+          setUnits((prev) => {
+            const exists = prev?.some((u) => u.unqid === data.details.unit)
+            if (!exists) return [...prev, { unqid: data.details.unit, unitName: data.details.unitname }]
+            return prev
+          })
+        }
+      } else {
+        console.log('API call failed: success=', data.success, 'has details=', !!data.details)
+      }
+    } catch (err) {
+      console.error('Error:', err)
+    }
   }
 
   const handleGridChange = (index, field, value) => {

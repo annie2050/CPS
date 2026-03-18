@@ -246,6 +246,59 @@ router.get('/branches', protect, async (req, res) => {
   }
 });
 
+router.get('/product-details', protect, async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ success: false, message: 'Database not connected.' });
+    }
+
+    const { productGuid } = req.query;
+    if (!productGuid) {
+      return res.status(400).json({ success: false, message: 'Product GUID is required.' });
+    }
+
+    const pool = await poolPromise;
+    const request = pool.request().input('prounqid', sql.NVarChar(50), productGuid);
+
+    const mfgResult = await request.query(`
+      SELECT sm206_c7 AS unqid, sm113.sm113_6 AS manufacurename
+      FROM sm206_c
+      INNER JOIN sm113 ON sm113.UNQID = sm206_c7
+      WHERE sm206_c6 = @prounqid
+    `);
+
+    const catResult = await request.query(`
+      SELECT sm17.UNQID AS unqid, sm17.sm17_6 AS category
+      FROM sm206
+      INNER JOIN sm17 ON sm17.UNQID = sm206.sm206_13
+      WHERE sm206.sm206_2 = @prounqid
+    `);
+
+    const unitResult = await request.query(`
+      SELECT sm209.UNQID AS unqid, sm209.sm209_5 AS unitname
+      FROM sm209
+      INNER JOIN sm206 ON sm206.sm206_12 = sm209.UNQID
+      WHERE sm206.sm206_2 = @prounqid
+    `);
+
+    const details = {
+      manufactureid: mfgResult.recordset[0]?.unqid || '',
+      manufacurename: mfgResult.recordset[0]?.manufacurename || '',
+      categoryunqid: catResult.recordset[0]?.unqid || '',
+      category: catResult.recordset[0]?.category || '',
+      unit: unitResult.recordset[0]?.unqid || '',
+      unitname: unitResult.recordset[0]?.unitname || ''
+    };
+
+    console.log('Product details result:', details);
+
+    return res.json({ success: true, details });
+  } catch (err) {
+    console.error('Product details error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch product details.' });
+  }
+});
+
 router.get('/rate-master', protect, async (req, res) => {
   try {
     if (!isDbConnected()) {
@@ -332,4 +385,3 @@ router.post('/orders', protect, async (req, res) => {
 });
 
 module.exports = router;
-
