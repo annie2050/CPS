@@ -1,6 +1,8 @@
 .dashboard-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg-primary);
+  margin-left: 60px;
+  transition: margin-left 0.3s ease, background-color 0.3s ease;
 }
 
 .dashboard-nav {
@@ -8,12 +10,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 32px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--nav-bg);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: background-color 0.3s ease;
 }
 
 .dashboard-nav h2 {
-  color: #333;
+  color: var(--text-primary);
   font-size: 20px;
 }
 
@@ -24,13 +30,13 @@
 }
 
 .nav-user span {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .logout-button {
   padding: 8px 16px;
-  background-color: #dc2626;
+  background-color: var(--color-danger);
   color: white;
   border: none;
   border-radius: 6px;
@@ -40,21 +46,28 @@
 }
 
 .logout-button:hover {
-  background-color: #b91c1c;
+  background-color: var(--color-danger-hover);
 }
 
 .dashboard-content {
   padding: 32px;
+  padding-bottom: 64px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
+.dashboard-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
 .welcome-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 40px;
   border-radius: 10px;
-  margin-bottom: 24px;
 }
 
 .welcome-card h1 {
@@ -67,32 +80,206 @@
   opacity: 0.9;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.stat-card {
-  background: white;
-  padding: 24px;
+.quick-actions-card {
+  background: var(--bg-card);
   border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  transition: background-color 0.3s ease;
 }
 
-.stat-card h3 {
-  color: #333;
+.quick-actions-card h3 {
+  color: var(--text-primary);
   font-size: 18px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.stat-card p {
-  color: #666;
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--hover-bg);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 14px;
-  margin-bottom: 8px;
+  color: var(--text-primary);
+  transition: all 0.2s;
 }
 
-.status-active {
-  color: #16a34a !important;
-  font-weight: 600;
+.quick-action-btn:hover {
+  background: var(--border-color);
+  transform: translateY(-2px);
+}
+
+.quick-action-btn.primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.quick-action-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.quick-action-icon {
+  font-size: 18px;
+}
+
+.quick-action-text {
+  font-weight: 500;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-card h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 18px;
+}
+
+.modal-card p {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modal-btn-secondary {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.modal-btn-secondary:hover {
+  background: var(--border-color);
+}
+
+.modal-btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.modal-btn-danger:hover {
+  background: var(--color-danger-hover);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-container {
+    margin-left: 0;
+  }
+  
+  .dashboard-header {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-nav {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  .nav-user {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .logout-button {
+    width: 100%;
+  }
+  
+  .dashboard-content {
+    padding: 16px;
+  }
+  
+  .welcome-card {
+    padding: 24px;
+  }
+  
+  .welcome-card h1 {
+    font-size: 24px;
+  }
+  
+  .quick-actions-card {
+    padding: 16px;
+  }
+  
+  .quick-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .quick-action-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+  
+  .modal-card {
+    margin: 16px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-content {
+    padding: 12px;
+  }
+  
+  .welcome-card {
+    padding: 20px;
+  }
+  
+  .welcome-card h1 {
+    font-size: 20px;
+  }
 }

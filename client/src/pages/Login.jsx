@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
+import '../styles/global.css'
 
-function Login() {
+function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -31,6 +32,10 @@ function Login() {
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
+      // Inform app-level auth state (if provided) so UI can react immediately
+      if (typeof onLogin === 'function') {
+        onLogin(data.token)
+      }
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)

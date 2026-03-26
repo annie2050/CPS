@@ -2,7 +2,7 @@ const sql = require('mssql');
 
 // Prefer environment variables, fall back to existing defaults for local dev
 const config = {
-  server: process.env.DB_SERVER || 'NEELUPC\\CLIENT1',
+  server: process.env.DB_SERVER || '144.143.142.7',
   port: Number(process.env.DB_PORT) || 57805,
   user: process.env.DB_USER || 'sa',
   password: process.env.DB_PASSWORD || 'Guljag#123',

@@ -8,6 +8,14 @@ const protect = (req, res, next) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
+  // Debug: log token presence (do not reveal full token in logs in prod)
+  if (token) {
+    const snippet = token.length > 10 ? token.substring(0, 10) + '...' : token;
+    console.log('JWT token detected (snippet):', snippet);
+  } else {
+    console.log('No JWT token provided in Authorization header');
+  }
+
   if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided.' });
   }

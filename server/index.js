@@ -8,9 +8,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ─── Middleware ──────────────────────────────────────────────────────────────
+// Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -19,9 +19,18 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+// Request logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  next();
+});
+
+// Routes
+ app.use('/api/auth', require('./routes/auth'));
+ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+ // Profile endpoints
+ app.use('/api/profile', require('./routes/profile'));
+// Dashboard v2 route removed; using only the original protected dashboard endpoints
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -39,9 +48,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error.' });
 });
 
-// ─── Start ───────────────────────────────────────────────────────────────────
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Start server
 const start = async () => {
-  await connectDB();
+  try {
+    await connectDB();
+    console.log('✅ Database connected');
+  } catch (err) {
+    console.error('Failed to connect to database:', err.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/api/health`);
