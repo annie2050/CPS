@@ -1,78 +1,33 @@
-# Customer Portal Service
+# Silent Refresh Flow for CPS Application
 
-A customer portal service built with Node.js, Express, React, and SQL Server.
+Overview
+- Implement a silent-refresh flow so the dashboard data loads seamlessly when a user is logged in and recovers automatically if the access token expires or is missing.
 
-## Project Structure
+Backend changes (summary)
+- Login endpoint now returns an access token and sets an HttpOnly refresh_token cookie.
+- Added /api/auth/refresh to issue a new access token using the refresh cookie.
+- Added /api/auth/logout to clear the refresh cookie.
+- Tokens have configurable lifetimes (access ~15m, refresh ~7d).
 
-```
-CPS/
-├── server/                 # Express API
-│   ├── config/            # DB connection
-│   ├── routes/            # API routes
-│   ├── middleware/        # Auth middleware
-│   ├── index.js           # Entry point
-│   ├── schema.sql        # Database schema
-│   └── package.json
-└── client/                # React frontend
-    ├── src/
-    │   ├── components/
-    │   ├── pages/         # Login, Dashboard
-    │   ├── App.jsx
-    │   └── main.jsx
-    └── package.json
-```
+Frontend changes (summary)
+- Added client/src/authService.js to manage login, silent refresh, and a fetchWithAuth wrapper.
+- Added a minimal frontend demo at client/src/demo to exercise login and guarded dashboard data.
 
-## Prerequisites
+How to run
+- Start backend: npm run start (in server directory)
+- Start frontend: npm run dev (in client directory)
+- Navigate to the demo page if wired into your app, or use the provided DashboardDemo to test via code.
 
-- Node.js 18+
-- SQL Server
-- npm or yarn
+Verification steps
+- Login with valid credentials; ensure you receive an access token and a refresh_token cookie is set.
+- Call a protected API (e.g., /api/dashboard) with Authorization: Bearer <token> and verify data loads.
+- After access token expiry, trigger another call; the frontend should refresh the token automatically and retry the request.
+- Logout should clear the refresh cookie and require login again for protected routes.
 
-## Setup
-
-### 1. Database Setup
-
-Run the SQL schema in your SQL Server:
-```sql
--- Run server/schema.sql in SQL Server Management Studio
-```
-
-### 2. Install Dependencies
-
-Server:
-```bash
-cd CPS/server
-npm install
-```
-
-Client:
-```bash
-cd CPS/client
-npm install
-```
-
-### 3. Run the Application
-
-Start the server (port 5000):
-```bash
-cd CPS/server
-npm start
-```
-
-Start the client (port 3000):
-```bash
-cd CPS/client
-npm run dev
-```
-
-## API Endpoints
-
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/health` - Health check
-
-## Technology Stack
-
-- **Backend**: Node.js, Express, mssql, bcryptjs, jsonwebtoken
-- **Frontend**: React 18, Vite, React Router
-- **Database**: SQL Server
+Next steps
+- Wire AppDemo into your router so you can reach the demo easily (or integrate the demo into your login flow).
+- Add automated tests to cover login, refresh, and guard flows.
+- Add a minimal React demo (Login + Dashboard guarded view) to exercise flow.
+- Wire AppDemo into your router so you can reach the demo easily (or integrate the demo into your login flow).
+- Add automated tests to cover login, refresh, and guard flows.
+- Add environment variable hints and an env.sample to document secrets and configs.

@@ -15,24 +15,23 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
   useEffect(() => {
     let cancelled = false
 
-    async function loadData() {
+    async function fetchData() {
       if (!customerGuid) {
         setError('No customer ID found')
         setLoading(false)
         return
       }
 
-    // If no token exists yet, do not fetch data (login required)
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
 
       setLoading(true)
       setError('')
       try {
-        const headers = token ? { Authorization: `Bearer ${token}` } : {}
+        const headers = { Authorization: `Bearer ${token}` }
 
         const [ordersRes, dashboardRes] = await Promise.all([
           fetch(`/api/dashboard/orders?customerGuid=${encodeURIComponent(customerGuid)}`, { headers }),
@@ -58,9 +57,14 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
       }
     }
 
-    loadData()
+    fetchData()
+    const onRefresh = () => {
+      if (!cancelled) fetchData()
+    }
+    window.addEventListener('dashboard_refresh', onRefresh)
     return () => {
       cancelled = true
+      window.removeEventListener('dashboard_refresh', onRefresh)
     }
   }, [customerGuid])
 

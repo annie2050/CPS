@@ -22,9 +22,16 @@ function Login({ onLogin }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       })
 
-      const data = await response.json()
+      // Safely parse JSON; in some cases the server may return an empty body
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (err) {
+        data = {};
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed')

@@ -5,6 +5,7 @@ const { connectDB } = require('../config/db');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'kjfawgefawgefgwuet7wefweyu7ew7fte7tf';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_secret_example_please_change';
 
 router.post('/login', async (req, res) => {
   try {
@@ -30,15 +31,29 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
+    // Create access and refresh tokens
+    const accessToken = jwt.sign(
       { id: user.id, email: user.email, name: user.name },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '15m' }
     );
+    const refreshToken = jwt.sign(
+      { id: user.id, email: user.email, name: user.name },
+      JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Persist refresh token as HttpOnly cookie
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // true in production
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     return res.json({
       message: 'Login successful',
-      token,
+      token: accessToken,
       user: {
         id: user.id,
         email: user.email,
@@ -50,6 +65,47 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', err);
     return res.status(500).json({ error: 'Server error during login' });
   }
+});
+
+// Refresh access token
+router.post('/refresh', (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'No refresh token' });
+    }
+    const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    // Rotate refresh token as part of refresh flow
+    const newRefresh = jwt.sign(
+      { id: payload.id, email: payload.email, name: payload.name },
+      JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
+    // Send new refresh token cookie (rotate)
+    res.cookie('refresh_token', newRefresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const newAccess = jwt.sign(
+      { id: payload.id, email: payload.email, name: payload.name },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+    return res.json({ token: newAccess });
+    } catch (err) {
+      console.error('Refresh token error:', err.message);
+      // User-friendly message for expired/invalid session
+      return res.status(401).json({ error: 'Your session has expired. Please log in again.' });
+    }
+});
+
+// Logout: clear refresh token cookie
+router.post('/logout', (req, res) => {
+  res.clearCookie('refresh_token');
+  return res.json({ message: 'Logged out' });
 });
 
 router.put('/change-password', async (req, res) => {

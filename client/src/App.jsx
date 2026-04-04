@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import OrderBooking from './pages/OrderBooking'
+import AppDemo from './demo/AppDemo.jsx'
 import './index.css'
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
               )
             }
           />
+          <Route path="/demo" element={<AppDemo />} />
           <Route 
             path="/dashboard" 
             element={

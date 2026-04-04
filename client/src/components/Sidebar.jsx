@@ -18,6 +18,8 @@ function Sidebar() {
     { id: 'orderbooking', label: 'New Order', icon: '📦', path: '/orderbooking' },
   ]
 
+  // Settings button will appear at the bottom of the sidebar (footer)
+
   const handleChangePassword = async (e) => {
     e.preventDefault()
     setPasswordMessage({ type: '', text: '' })
@@ -88,20 +90,19 @@ function Sidebar() {
         </div>
 
         <div className="sidebar-footer">
+          {/* Bottom Settings button */}
+          <button
+            className="sidebar-item sidebar-settings-btn"
+            onClick={() => setShowSettingsModal(true)}
+          >
+            <span className="sidebar-icon">⚙️</span>
+            <span className="sidebar-label">Settings</span>
+          </button>
           {isOpen && (
-            <>
-              <button
-                className="sidebar-item sidebar-settings-btn"
-                onClick={() => setShowSettingsModal(true)}
-              >
-                <span className="sidebar-icon">⚙️</span>
-                <span className="sidebar-label">Settings</span>
-              </button>
-              <div className="sidebar-venue">
-                <span className="sidebar-icon">📍</span>
-                <span className="sidebar-label">Guljag Industries</span>
-              </div>
-            </>
+            <div className="sidebar-venue">
+              <span className="sidebar-icon">📍</span>
+              <span className="sidebar-label">Guljag Industries</span>
+            </div>
           )}
         </div>
       </div>
