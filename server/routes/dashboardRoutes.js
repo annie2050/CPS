@@ -1,6 +1,7 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const { connectDB, isDbConnected, sql } = require('../config/db');
+const { connectDB, isDbConnected, sql, poolPromise } = require('../config/db');
+const { getCache, setCache } = require('../config/cache');
 
  const router = express.Router();
  let dashboardDataSource = 'v2';
@@ -24,7 +25,7 @@ router.get('/orders', protect, async (req, res) => {
       return res.json({ success: true, customerGuid: null, orders: [] });
     }
 
-    const pool = await connectDB();
+    const pool = await poolPromise;
 
     const query = `
       SELECT 
@@ -79,7 +80,7 @@ router.get('/dashboard-data', protect, async (req, res) => {
       return res.json({ success: true, customerGuid: null, data: null });
     }
 
-    const pool = await connectDB();
+    const pool = await poolPromise;
 
     const query = `
       WITH ORDERS AS (
@@ -124,11 +125,17 @@ router.get('/dashboard-data', protect, async (req, res) => {
 // Products
 router.get('/products', protect, async (req, res) => {
   try {
-    const pool = await connectDB();
+    const cacheKey = 'dashboard_products';
+    const cachedData = getCache(cacheKey);
+    if (cachedData) return res.json({ success: true, products: cachedData });
+
+    const pool = await poolPromise;
     const result = await pool.request().query(
       "SELECT sm206_2 AS unqid, sm206_7 AS ProductN FROM sm206 WHERE sm206_7 IS NOT NULL AND sm206_7 <> '' ORDER BY sm206_7"
     );
-    return res.json({ success: true, products: result.recordset || [] });
+    const products = result.recordset || [];
+    setCache(cacheKey, products);
+    return res.json({ success: true, products });
   } catch (err) {
     console.error('Products error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch products.' });
@@ -138,11 +145,17 @@ router.get('/products', protect, async (req, res) => {
 // Manufacturers
 router.get('/manufacturers', protect, async (req, res) => {
   try {
-    const pool = await connectDB();
+    const cacheKey = 'dashboard_manufacturers';
+    const cachedData = getCache(cacheKey);
+    if (cachedData) return res.json({ success: true, manufacturers: cachedData });
+
+    const pool = await poolPromise;
     const result = await pool.request().query(
       "SELECT unqid, sm113_6 AS ManufactureN FROM sm113 WHERE sm113_6 IS NOT NULL AND sm113_6 <> '' ORDER BY sm113_6"
     );
-    return res.json({ success: true, manufacturers: result.recordset || [] });
+    const manufacturers = result.recordset || [];
+    setCache(cacheKey, manufacturers);
+    return res.json({ success: true, manufacturers });
   } catch (err) {
     console.error('Manufacturers error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch manufacturers.' });
@@ -152,11 +165,17 @@ router.get('/manufacturers', protect, async (req, res) => {
 // Categories
 router.get('/categories', protect, async (req, res) => {
   try {
-    const pool = await connectDB();
+    const cacheKey = 'dashboard_categories';
+    const cachedData = getCache(cacheKey);
+    if (cachedData) return res.json({ success: true, categories: cachedData });
+
+    const pool = await poolPromise;
     const result = await pool.request().query(
       "SELECT unqid, sm17_6 AS CategoryN FROM sm17 WHERE sm17_6 IS NOT NULL AND sm17_6 <> '' ORDER BY sm17_6"
     );
-    return res.json({ success: true, categories: result.recordset || [] });
+    const categories = result.recordset || [];
+    setCache(cacheKey, categories);
+    return res.json({ success: true, categories });
   } catch (err) {
     console.error('Categories error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch categories.' });
@@ -166,30 +185,106 @@ router.get('/categories', protect, async (req, res) => {
 // Units
 router.get('/units', protect, async (req, res) => {
   try {
-    const pool = await connectDB();
+    const cacheKey = 'dashboard_units';
+    const cachedData = getCache(cacheKey);
+    if (cachedData) return res.json({ success: true, units: cachedData });
+
+    const pool = await poolPromise;
     const result = await pool.request().query(
       "SELECT unqid, sm209_7 AS unitN FROM sm209 WHERE sm209_7 IS NOT NULL AND sm209_7 <> '' ORDER BY sm209_7"
     );
-    return res.json({ success: true, units: result.recordset || [] });
+    const units = result.recordset || [];
+    setCache(cacheKey, units);
+    return res.json({ success: true, units });
   } catch (err) {
     console.error('Units error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch units.' });
   }
 });
 
-// Branches
+// Branches (Filtered by customer access)
 router.get('/branches', protect, async (req, res) => {
   try {
-    const pool = await connectDB();
-    const result = await pool.request().query(
-      'SELECT SM1002_5 AS unqid, SM1002_7 AS BranchN FROM sm1002 ORDER BY SM1002_7'
-    );
-    return res.json({ success: true, branches: result.recordset || [] });
+    const customerGuid = req.query.customerGuid;
+    if (!customerGuid) {
+       return res.status(400).json({ success: false, message: 'Customer GUID is required.' });
+    }
+    
+    const cacheKey = `branches_${customerGuid}`;
+    const cachedData = getCache(cacheKey);
+    if (cachedData) return res.json({ success: true, branches: cachedData });
+
+    const pool = await poolPromise;
+    
+    // SQL logic to get branches allowed for this customer
+    const result = await pool.request()
+      .input('customerguid', sql.NVarChar(64), customerGuid)
+      .query(`
+        DECLARE @branch NVARCHAR(MAX);
+        SET @branch = (SELECT sm19_63 FROM sm19 WHERE unqid = @customerguid);
+        
+        SELECT 
+          SM1002_5 AS unqid, 
+          SM1002_7 AS BranchN
+        FROM SM1002
+        WHERE SM1002_5 IN (SELECT data FROM dbo.split(ISNULL(@branch, ''), ','))
+        ORDER BY SM1002_7 ASC;
+      `);
+      
+    const branches = result.recordset || [];
+    setCache(cacheKey, branches);
+    return res.json({ success: true, branches });
   } catch (err) {
     console.error('Branches error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch branches.' });
   }
 });
+
+// Bind branches by customer name (e.g., Karma Enterprises)
+router.get('/branches-by-name', protect, async (req, res) => {
+  try {
+    const customerName = req.query.customerName
+    console.log('DEBUG: Received customerName:', customerName);
+    
+    if (!customerName) {
+      return res.status(400).json({ success: false, message: 'Customer name is required.' })
+    }
+    const pool = await poolPromise;
+    
+    // Resolve customer GUID from name (best effort: match on name or email field if available)
+    const guidResult = await pool.request()
+      .input('name', sql.NVarChar(255), customerName)
+      .query(`SELECT TOP 1 unqid, sm19_63 FROM sm19 WHERE LOWER(sm19_5) = LOWER(@name) OR LOWER(sm19_17) = LOWER(@name)`);
+    
+    console.log('DEBUG: Resolved customer record:', guidResult.recordset[0]);
+    
+    const guid = guidResult.recordset[0]?.unqid
+    if (!guid) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' })
+    }
+
+    const branchResult = await pool.request()
+      .input('customerguid', sql.NVarChar(64), guid)
+      .query(`
+        DECLARE @branch NVARCHAR(MAX);
+        SET @branch = (SELECT sm19_63 FROM sm19 WHERE unqid = @customerguid);
+        SELECT 
+          SM1002_5 AS UNQID, 
+          SM1002_7 AS Dname, 
+          1 AS ord
+        FROM SM1002
+        WHERE SM1002_5 IN (SELECT data FROM dbo.split(ISNULL(@branch, ''), ','))
+        ORDER BY SM1002_7 ASC, ord ASC;
+      `)
+      
+    console.log('DEBUG: Branches found in SM1002:', branchResult.recordset);
+    
+    res.json({ success: true, branches: branchResult.recordset })
+  } catch (err) {
+    console.error('Dashboard branches-by-name error:', err)
+    res.status(500).json({ success: false, message: 'Failed to fetch branches by name.' })
+  }
+})
 
 // Product details - dependent dropdowns based on product selection
 router.get('/product-details', protect, async (req, res) => {
@@ -200,7 +295,7 @@ router.get('/product-details', protect, async (req, res) => {
       return res.json({ success: true, manufacturers: [], categories: [], units: [] });
     }
     
-    const pool = await connectDB();
+    const pool = await poolPromise;
     
     let manufacturers = [];
     let categories = [];
@@ -276,7 +371,7 @@ router.get('/rate', protect, async (req, res) => {
       return res.json({ success: true, rate: 0 });
     }
     
-    const pool = await connectDB();
+    const pool = await poolPromise;
     
     let rate = 0;
     
@@ -313,6 +408,83 @@ router.get('/rate', protect, async (req, res) => {
   } catch (err) {
     console.error('Rate error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch rate.' });
+  }
+});
+
+// Save new order
+router.post('/save-order', protect, async (req, res) => {
+  try {
+    const {
+      customerGuid,
+      bookingDate,
+      paymentTerm,
+      validTill,
+      branchGuid,
+      paymentMode,
+      items // Array of items
+    } = req.body;
+
+    // Validate required fields
+    if (!customerGuid || !bookingDate || !branchGuid || !paymentMode || !items || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing required order fields.' });
+    }
+
+    const pool = await connectDB();
+    const transaction = new sql.Transaction(pool);
+
+    try {
+      await transaction.begin();
+
+      // Using a simple ID generator since randomUUID might not be available in older node versions
+      const orderUnqid = 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      
+      // 1. Insert Header
+      const headerQuery = `
+        INSERT INTO sm1017_p (unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode)
+        VALUES (@unqid, @customerGuid, @bookingDate, @paymentTerm, @validTill, @branchGuid, @paymentMode)
+      `;
+      
+      await transaction.request()
+        .input('unqid', sql.NVarChar(64), orderUnqid)
+        .input('customerGuid', sql.NVarChar(64), customerGuid)
+        .input('bookingDate', sql.DateTime, new Date(bookingDate))
+        .input('paymentTerm', sql.NVarChar(255), paymentTerm)
+        .input('validTill', sql.DateTime, validTill ? new Date(validTill) : null)
+        .input('branchGuid', sql.NVarChar(64), branchGuid)
+        .input('paymentMode', sql.NVarChar(50), paymentMode)
+        .query(headerQuery);
+
+      // 2. Insert Items
+      for (const item of items) {
+        const itemUnqid = 'ITEM-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        const itemQuery = `
+          INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date)
+          VALUES (@unqid, @parentId, @productGuid, @mfgGuid, @categoryGuid, @unitGuid, @qty, @rate, @amount, @deliveryDate)
+        `;
+        
+        await transaction.request()
+          .input('unqid', sql.NVarChar(64), itemUnqid)
+          .input('parentId', sql.NVarChar(64), orderUnqid)
+          .input('productGuid', sql.NVarChar(64), item.productGuid)
+          .input('mfgGuid', sql.NVarChar(64), item.mfgGuid)
+          .input('categoryGuid', sql.NVarChar(64), item.categoryGuid)
+          .input('unitGuid', sql.NVarChar(64), item.unitGuid)
+          .input('qty', sql.Decimal(18, 4), item.qty)
+          .input('rate', sql.Decimal(18, 4), item.rate)
+          .input('amount', sql.Decimal(18, 4), item.amount)
+          .input('deliveryDate', sql.DateTime, item.deliveryDate ? new Date(item.deliveryDate) : null)
+          .query(itemQuery);
+      }
+
+      await transaction.commit();
+      res.json({ success: true, message: 'Order saved successfully', orderId: orderUnqid });
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  } catch (err) {
+    console.error('Save order error:', err);
+    res.status(500).json({ success: false, message: 'Failed to save order.' });
   }
 });
 

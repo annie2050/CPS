@@ -16,6 +16,7 @@ function Dashboard({ onLogout }) {
   const navigate = useNavigate()
 
   useEffect(() => {
+    console.log('Auth Token:', localStorage.getItem('token'));
     const userData = localStorage.getItem('user')
     if (userData) {
       setUser(JSON.parse(userData))
@@ -90,6 +91,10 @@ function Dashboard({ onLogout }) {
               <button className="quick-action-btn primary" onClick={() => navigate('/orderbooking')}>
                 <span className="quick-action-icon">➕</span>
                 <span className="quick-action-text">New Order</span>
+              </button>
+              <button className="quick-action-btn" onClick={() => navigate('/view-orders')}>
+                <span className="quick-action-icon">📋</span>
+                <span className="quick-action-text">View Orders</span>
               </button>
             </div>
           </div>

@@ -16,7 +16,9 @@ function Sidebar() {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
     { id: 'orderbooking', label: 'New Order', icon: '📦', path: '/orderbooking' },
+    { id: 'reports', label: 'Report Complaint', icon: '🚩', path: '/reports' },
   ]
+
 
   // Settings button will appear at the bottom of the sidebar (footer)
 

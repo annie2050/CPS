@@ -2,15 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 const { connectDB } = require('./config/db');
+const errorHandler = require('./middleware/errorHandler');
+const { log, error } = require('./utils/logger');
 
 dotenv.config();
 
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5006;
+
 
 // Parse cookies for refresh-token flow
 app.use(cookieParser());
+app.use(compression());
 
 // Middleware
 app.use(cors({
@@ -25,15 +31,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  log(`${req.method} ${req.path}`);
   next();
 });
 
 // Routes
- app.use('/api/auth', require('./routes/auth'));
- app.use('/api/dashboard', require('./routes/dashboardRoutes'));
- // Profile endpoints
- app.use('/api/profile', require('./routes/profile'));
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+  app.use('/api/orderbooking', require('./routes/orderbookingRoutes'));
+  app.use('/api/reports', require('./routes/reportRoutes'));
+  // Profile endpoints
+  app.use('/api/profile', require('./routes/profile'));
+
 // Dashboard v2 route removed; using only the original protected dashboard endpoints
 
 // Health check
@@ -48,9 +57,11 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.stack);
-  res.status(500).json({ success: false, message: 'Internal server error.' });
+  error(`Unhandled error at ${req.path}`, err);
+  errorHandler(err, req, res, next);
 });
+
+// Handle uncaught exceptions
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {

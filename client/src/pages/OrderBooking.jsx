@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { fetchWithAuth } from '../authService'
 import './OrderBooking.css'
 import Sidebar from '../components/Sidebar'
 import Footer from '../components/Footer'
 
 function OrderBooking() {
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const orderId = queryParams.get('orderId')
+  const isEditMode = !!orderId
+  const today = new Date().toISOString().split('T')[0]
+
   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem('user')
     return userData ? JSON.parse(userData) : null
@@ -21,12 +28,59 @@ function OrderBooking() {
   const [loadingDropdowns, setLoadingDropdowns] = useState(false)
   const navigate = useNavigate()
 
+  useEffect(() => {
+    async function fetchOrderDetails() {
+      if (!isEditMode) return
+      setLoading(true)
+      try {
+        const res = await fetchWithAuth(`/api/orderbooking/orders/${orderId}`)
+        const data = await res.json()
+        if (data.success && data.order) {
+          const order = data.order
+          
+          let validTillDays = '';
+          if (order.validTill && order.bookingDate) {
+            const vt = new Date(order.validTill);
+            const bd = new Date(order.bookingDate);
+            const diffTime = Math.abs(vt - bd);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            validTillDays = diffDays.toString();
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            bookingDate: order.bookingDate ? new Date(order.bookingDate).toISOString().split('T')[0] : today,
+            productGuid: order.productGuid || '',
+            unitGuid: order.unitGuid || '',
+            branchGuid: order.branchGuid || '',
+            modeOfPayment: order.modeOfPayment || '',
+            paymentTerm: order.paymentTerm || '',
+            qty: order.qty || '',
+            validTillDays: validTillDays
+          }))
+          if (order.items && order.items.length > 0) {
+            setGridData(order.items.map(item => ({
+              date: item.deliveryDate ? new Date(item.deliveryDate).toISOString().split('T')[0] : '',
+              qty: item.qty || ''
+            })))
+          }
+        } else {
+          setMessage({ type: 'error', text: data.message || 'Failed to load order details' })
+        }
+      } catch (err) {
+        console.error('Failed to fetch order details:', err)
+        setMessage({ type: 'error', text: 'Error loading order details' })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchOrderDetails()
+  }, [isEditMode, orderId])
+
   const customerGuid = user?.id || (() => {
     const userData = localStorage.getItem('user')
     return userData ? JSON.parse(userData)?.id : null
   })()
-
-  const today = new Date().toISOString().split('T')[0]
 
   const [formData, setFormData] = useState({
     bookingDate: today,
@@ -49,27 +103,38 @@ function OrderBooking() {
   useEffect(() => {
     async function fetchInitialData() {
       try {
-        const token = localStorage.getItem('token')
-        const headers = token ? { Authorization: `Bearer ${token}` } : {}
-
         const [productsRes, branchesRes] = await Promise.all([
-          fetch('/api/dashboard/products', { headers }),
-          fetch('/api/dashboard/branches', { headers }),
+          fetchWithAuth('/api/dashboard/products'),
+          fetchWithAuth(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`),
         ])
-
         const productsData = await productsRes.json()
         const branchesData = await branchesRes.json()
-
         if (productsData.success) setProducts(productsData.products)
-        if (branchesData.success) setBranches(branchesData.branches)
+        // Normalize branches to the shape used by the UI: { unqid, BranchN }
+        let mappedBranches = []
+        if (branchesData?.branches && Array.isArray(branchesData.branches)) {
+          mappedBranches = branchesData.branches.map((b) => ({ 
+            unqid: b.unqid ?? b.UNQID ?? b.UNQID2 ?? b.UNQ, 
+            BranchN: b.BranchN ?? b.Branch ?? b.BRANCH ?? b.branch ?? b.Dname
+          }))
+        } else if (Array.isArray(branchesData)) {
+          mappedBranches = branchesData.map((b) => ({ 
+            unqid: b.unqid ?? b.UNQID, 
+            BranchN: b.BranchN ?? b.Branch ?? b.Dname ?? '' 
+          }))
+        }
+        if (Array.isArray(mappedBranches)) setBranches(mappedBranches)
       } catch (err) {
         console.error('Failed to fetch initial data:', err)
       } finally {
         setLoading(false)
       }
     }
-    fetchInitialData()
-  }, [])
+    if (customerGuid) {
+      fetchInitialData()
+    }
+  }, [customerGuid])
+
 
   useEffect(() => {
     async function fetchProductDetails() {
@@ -176,8 +241,18 @@ function OrderBooking() {
 
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('/api/dashboard/orders', {
-        method: 'POST',
+      
+      const bookingDateObj = new Date(formData.bookingDate);
+      let validTillDate = new Date(bookingDateObj);
+      if (formData.validTillDays) {
+        validTillDate.setDate(bookingDateObj.getDate() + parseInt(formData.validTillDays));
+      } else {
+        validTillDate.setDate(bookingDateObj.getDate() + 30);
+      }
+      const validTill = validTillDate.toISOString();
+
+      const res = await fetch(isEditMode ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders', {
+        method: isEditMode ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -185,44 +260,58 @@ function OrderBooking() {
         body: JSON.stringify({
           customerGuid: customerGuid,
           productGuid: formData.productGuid,
-          productName: selectedProduct?.ProductN || '',
+          manuGuid: formData.manuGuid,
+          categoryGuid: formData.categoryGuid,
           unitGuid: formData.unitGuid,
-          unitName: selectedUnit?.unitN || '',
+          rate: Number(rate),
           qty: Number(formData.qty),
           paymentTerm: formData.paymentTerm,
           bookingDate: formData.bookingDate,
-          expectedDeliveryDates: validGridData,
+          validTill: validTill,
+          items: validGridData.map(item => ({
+            deliveryDate: item.date,
+            qty: Number(item.qty)
+          })),
           modeOfPayment: formData.modeOfPayment,
+          branchGuid: formData.branchGuid
         }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data?.message || 'Failed to create order')
+        throw new Error(data?.message || (isEditMode ? 'Failed to update order' : 'Failed to create order'))
       }
 
-      setMessage({ type: 'success', text: 'Order created successfully!' })
-      setFormData({
-        bookingDate: today,
-        productGuid: '',
-        manuGuid: '',
-        categoryGuid: '',
-        unitGuid: '',
-        branchGuid: '',
-        rate: '',
-        modeOfPayment: '',
-        paymentTerm: '',
-        validTillDays: '',
-        qty: '',
-      })
-      setGridData([{ date: '', qty: '' }])
-      setManufacturers([])
-      setCategories([])
-      setUnits([])
-      setRate(0)
+      setMessage({ type: 'success', text: isEditMode ? 'Order updated successfully!' : 'Order created successfully!' })
+      window.scrollTo(0, 0)
+      
+      if (!isEditMode) {
+        setFormData({
+          bookingDate: today,
+          productGuid: '',
+          manuGuid: '',
+          categoryGuid: '',
+          unitGuid: '',
+          branchGuid: '',
+          rate: '',
+          modeOfPayment: '',
+          paymentTerm: '',
+          validTillDays: '',
+          qty: '',
+        })
+        setGridData([{ date: '', qty: '' }])
+        setManufacturers([])
+        setCategories([])
+        setUnits([])
+        setRate(0)
+      } else {
+        // In edit mode, we might want to navigate away or just keep the data
+        setTimeout(() => navigate('/view-orders'), 2000)
+      }
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
+      window.scrollTo(0, 0)
     } finally {
       setSaving(false)
     }
@@ -245,12 +334,12 @@ function OrderBooking() {
         </div>
       </nav>
 
-      <div className="order-page-content">
-        <div className="order-page-header">
-          <h1>Place a New Order</h1>
-        </div>
+       <div className="order-page-content">
+         <div className="order-page-header">
+           <h1>{isEditMode ? 'Edit Order' : 'Place a New Order'}</h1>
+         </div>
 
-        {message.text && (
+         {message.text && (
           <div className={`order-form-message ${message.type}`}>
             {message.text}
           </div>
@@ -473,14 +562,14 @@ function OrderBooking() {
             </div>
           </div>
 
-          <button type="submit" className="order-form-submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Order'}
-          </button>
-        </form>
-        <Footer />
-      </div>
-    </div>
-  )
-}
+           <button type="submit" className="order-form-submit" disabled={saving}>
+             {saving ? 'Saving...' : (isEditMode ? 'Update Order' : 'Save Order')}
+           </button>
+         </form>
+         <Footer />
+       </div>
+     </div>
+   )
+ }
 
 export default OrderBooking

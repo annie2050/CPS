@@ -3,11 +3,9 @@
 > vite
 
 Port 3000 is in use, trying another one...
+Port 3001 is in use, trying another one...
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m864[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m958[22m[2m[0m ms[22m
 
-  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3001[22m/[39m
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3002[22m/[39m
 [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
-[2m4:59:54 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/demo/DashboardDemo.jsx[22m
-[2m5:00:00 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/demo/DashboardDemo.jsx[22m
-[2m5:00:06 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/demo/DashboardDemo.jsx[22m

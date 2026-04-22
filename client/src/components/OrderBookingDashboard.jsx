@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { fetchWithAuth } from '../authService'
 import './OrderBookingDashboard.css'
 
 function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
+  const navigate = useNavigate()
   const [orders, setOrders] = useState([])
+
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -31,11 +35,9 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
       setLoading(true)
       setError('')
       try {
-        const headers = { Authorization: `Bearer ${token}` }
-
         const [ordersRes, dashboardRes] = await Promise.all([
-          fetch(`/api/dashboard/orders?customerGuid=${encodeURIComponent(customerGuid)}`, { headers }),
-          fetch(`/api/dashboard/dashboard-data?customerGuid=${encodeURIComponent(customerGuid)}`, { headers }),
+          fetchWithAuth(`/api/dashboard/orders?customerGuid=${encodeURIComponent(customerGuid)}`),
+          fetchWithAuth(`/api/dashboard/dashboard-data?customerGuid=${encodeURIComponent(customerGuid)}`),
         ])
 
         const ordersData = await ordersRes.json()
@@ -51,7 +53,10 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
         }
       } catch (e) {
         console.error('Error loading data:', e)
-        if (!cancelled) setError(e.message || 'Failed to load data')
+        if (!cancelled) {
+          const message = e.message === 'Invalid or expired token.' ? 'Please log in again, your session has expired' : (e.message || 'Failed to load data')
+          setError(message)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -59,6 +64,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
 
     fetchData()
     const onRefresh = () => {
+
       if (!cancelled) fetchData()
     }
     window.addEventListener('dashboard_refresh', onRefresh)
@@ -105,6 +111,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
     <div className="obd-container">
       {/* Summary Cards */}
       <div className="obd-summary-grid">
+
         <div className="obd-summary-card">
           <div className="obd-summary-label">Total Orders</div>
           <div className="obd-summary-value">{formatNumber(dashboardData?.TOTAL_ORDERS)}</div>

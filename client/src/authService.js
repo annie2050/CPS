@@ -2,8 +2,8 @@
 // Assumes backend provides: POST /api/auth/login, POST /api/auth/refresh, POST /api/auth/logout
 // Token-based authentication: access token sent via Authorization: Bearer <token>
 
- import { TOKEN_EXPIRED_MESSAGE } from './i18n/messages.js';
- import { showToast } from './utils/toast.js';
+import { TOKEN_EXPIRED_MESSAGE } from './i18n/messages.js';
+import { showBanner } from './utils/banner.js';
  let accessToken = null;
 
 // Login and store access token in memory
@@ -29,32 +29,29 @@ export async function login(email, password) {
 }
 
 // Refresh the access token using the refresh token cookie
- async function refreshTokenIfNeeded() {
-   const res = await fetch('/api/auth/refresh', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     credentials: 'include',
-   });
-  if (!res.ok) {
-    // Surface friendly message and redirect
-    if (typeof showToast === 'function') {
-      showToast(TOKEN_EXPIRED_MESSAGE);
-    } else {
-      console.warn(TOKEN_EXPIRED_MESSAGE);
+  async function refreshTokenIfNeeded() {
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      // Direct cleanup and redirect for session expiry
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      accessToken = null;
+      
+      window.location.replace('/login');
+      return false;
     }
-    // Auto-redirect after a brief pause
-    setTimeout(() => {
-      window.location.assign('/login');
-    }, 3000);
+    const data = await res.json();
+    if (data?.token) {
+      accessToken = data.token;
+      return true;
+    }
     return false;
   }
-   const data = await res.json();
-   if (data?.token) {
-     accessToken = data.token;
-     return true;
-   }
-   return false;
-}
+
 
 // Generic fetch with automatic token handling
 export async function fetchWithAuth(input, init = {}) {
@@ -72,8 +69,12 @@ export async function fetchWithAuth(input, init = {}) {
       const retry = await fetch(input, { ...init, headers: retryHeaders });
       return retry;
     } else {
-      // Surface a friendly error instead of raw 401
-      throw new Error(TOKEN_EXPIRED_MESSAGE);
+      // Direct cleanup and redirect
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      accessToken = null;
+      window.location.replace('/login');
+      return Promise.reject(new Error(TOKEN_EXPIRED_MESSAGE));
     }
   }
   return res;

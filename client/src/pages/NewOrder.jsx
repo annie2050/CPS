@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 // Simple New Order page that posts to the server to create a new order
 function NewOrder() {
@@ -16,6 +16,10 @@ function NewOrder() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  
+  const queryParams = new URLSearchParams(location.search);
+  const orderId = queryParams.get('orderId');
 
   useEffect(() => {
     // Load current user to get customerGuid
@@ -25,29 +29,85 @@ function NewOrder() {
     }
   }, [])
 
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetails();
+    }
+  }, [orderId]);
+
+  const fetchOrderDetails = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/orderbooking/orders/${orderId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const order = data.order;
+        setProductGuid(order.productGuid || '');
+        setBranchGuid(order.branchGuid || '');
+        setQty(order.qty || 1);
+        setUnitGuid(order.unitGuid || '');
+        setBookingDate(order.bookingDate ? new Date(order.bookingDate).toISOString().slice(0,10) : '');
+        setPaymentTerm(order.paymentTerm || '');
+        setModeOfPayment(order.modeOfPayment || '');
+        // Note: we only support a single main item in the basic form for now
+      } else {
+        setError('Failed to load order details');
+      }
+    } catch (err) {
+      setError('Error fetching order: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Minimal fetch helpers (no error logs on production)
   const fetchLists = async () => {
     const token = localStorage.getItem('token')
-    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    if (!token) return { products: [], branches: [], units: [] }
+    const headers = { 'Authorization': `Bearer ${token}` }
     try {
       const [p, b, u] = await Promise.all([
         fetch('/api/dashboard/products', { headers }),
-        fetch('/api/dashboard/branches', { headers }),
+        fetch(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`, { headers }),
         fetch('/api/dashboard/units', { headers }),
       ])
       const prod = await p.json()
-      const bran = await b.json()
+      const branData = await b.json()
       const unt = await u.json()
-      return { products: prod?.products ?? [], branches: bran?.branches ?? [], units: unt?.units ?? [] }
+      
+      // Check for expired session
+      if (p.status === 401 || b.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setError('Please log in again, your session has expired.')
+        setTimeout(() => { window.location.href = '/login' }, 2000)
+        return { products: [], branches: [], units: [] }
+      }
+      
+      // Normalize branches from dashboard/branches response
+      const branches = Array.isArray(branData?.branches)
+        ? branData.branches.map((br) => ({
+            unqid: br.unqid ?? br.UNQID ?? br.UNQid ?? br.UNQ ?? br.unqID,
+            branch: br.BranchN ?? br.Branch ?? br.BRANCH ?? br.branch ?? br.Dname
+          }))
+        : []
+        
+      return { products: prod?.products ?? [], branches, units: unt?.units ?? [] }
     } catch {
       return { products: [], branches: [], units: [] }
     }
   }
 
   const [lists, setLists] = useState({ products: [], branches: [], units: [] })
+  // Load dropdown lists once customerGuid is available
   useEffect(() => {
-    fetchLists().then(setLists)
-  }, [])
+    if (customerGuid) {
+      fetchLists().then(setLists)
+    }
+  }, [customerGuid])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -71,19 +131,22 @@ function NewOrder() {
         modeOfPayment
       }
       const token = localStorage.getItem('token')
-      const res = await fetch('/api/orderbooking/orders', {
-        method: 'POST',
+      const method = orderId ? 'PUT' : 'POST';
+      const url = orderId ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
       })
       const data = await res.json()
       if (!res.ok || !data?.success) {
-        setError(data?.message || 'Failed to create order')
+        setError(data?.message || (orderId ? 'Failed to update order' : 'Failed to create order'))
       } else {
         navigate('/dashboard', { replace: true })
       }
     } catch (err) {
-      setError('Failed to create order: ' + (err?.message || 'Unknown error'))
+      setError((orderId ? 'Failed to update order: ' : 'Failed to create order: ') + (err?.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -91,14 +154,14 @@ function NewOrder() {
 
   return (
     <div className="new-order-container">
-      <h2>New Order</h2>
+      <h2>{orderId ? 'Edit Order' : 'New Order'}</h2>
       <form onSubmit={handleSubmit} className="new-order-form">
         <div>
           <label>Product</label>
           <select value={productGuid} onChange={(e) => setProductGuid(e.target.value)} required>
             <option value="">Select product</option>
             {lists.products.map((p) => (
-              <option key={p.unqid} value={p.unqid}>{p.productName || p.unqid}</option>
+              <option key={p.unqid} value={p.unqid}>{p.ProductN || p.unqid}</option>
             ))}
           </select>
         </div>
@@ -145,10 +208,11 @@ function NewOrder() {
           <input value={modeOfPayment} onChange={(e) => setModeOfPayment(e.target.value)} />
         </div>
         {error && <div className="error">{error}</div>}
-        <button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create Order'}</button>
+        <button type="submit" disabled={loading}>{loading ? 'Processing...' : (orderId ? 'Update Order' : 'Create Order')}</button>
       </form>
     </div>
   )
 }
 
 export default NewOrder
+

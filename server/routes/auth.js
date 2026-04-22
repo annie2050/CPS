@@ -95,10 +95,10 @@ router.post('/refresh', (req, res) => {
       { expiresIn: '15m' }
     );
     return res.json({ token: newAccess });
-    } catch (err) {
+  } catch (err) {
       console.error('Refresh token error:', err.message);
       // User-friendly message for expired/invalid session
-      return res.status(401).json({ error: 'Your session has expired. Please log in again.' });
+      return res.status(401).json({ error: 'you have logged out , please try again' });
     }
 });
 
