@@ -95,15 +95,30 @@ router.get('/dashboard-data', protect, async (req, res) => {
         ) C
         WHERE ISNULL(C.CHALLANQTY,0) < S.SM1016_35
         GROUP BY S.SM1016_7
+      ),
+      FINANCE AS (
+        SELECT 
+          SM19.UNQID AS CUSTOMERUNQ,
+          SUM(ISNULL(IN_11,0)) AS TOTAL_DUE,
+          SUM(CASE 
+            WHEN DATEDIFF(DAY, IN_14, GETDATE()) > 0 
+            THEN ISNULL(IN_11,0) 
+            ELSE 0 
+          END) AS OVERDUE_AMOUNT
+        FROM SM19
+        LEFT JOIN INVN ON SM19.UNQID = INVN.IN_12
+        WHERE ISNULL(IN_7,'OO') = 'OO'
+        GROUP BY SM19.UNQID
       )
       SELECT 
         ISNULL(O.TOTAL_ORDERS,0) AS TOTAL_ORDERS,
         ISNULL(P.PENDING_ORDERS,0) AS PENDING_ORDERS,
-        0 AS OVERDUE_AMOUNT,
-        0 AS DUE_AMOUNT
+        ISNULL(F.OVERDUE_AMOUNT,0) AS OVERDUE_AMOUNT,
+        ISNULL(F.TOTAL_DUE,0) AS DUE_AMOUNT
       FROM SM19 C
       LEFT JOIN ORDERS O ON C.UNQID = O.CUSTOMERUNQ
       LEFT JOIN PENDING P ON C.UNQID = P.CUSTOMERUNQ
+      LEFT JOIN FINANCE F ON C.UNQID = F.CUSTOMERUNQ
       WHERE C.UNQID = @customerGuid
     `;
 
