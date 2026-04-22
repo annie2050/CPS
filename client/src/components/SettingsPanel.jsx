@@ -44,7 +44,7 @@ export default function SettingsPanel({ onClose }) {
     <div style={{ position: 'fixed', top: 0, right: 0, width: '320px', height: '100%', background: 'var(--color-surface-0)', boxShadow: '-6px 0 20px rgba(0,0,0,.2)', zIndex: 10000, padding: 16 }} aria-label="Settings Panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <strong>Venue Settings</strong>
-        <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 18 }}>✕</button>
+        <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 18 }}>x</button>
       </div>
       <hr />
       <section>

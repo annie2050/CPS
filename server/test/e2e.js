@@ -1,9 +1,9 @@
 // Lightweight end-to-end smoke tests for login flow
-// Prerequisites: run the server locally on port 5000
+// Prerequisites: run the server locally. Defaults to port 5006.
 // This script uses global fetch (Node.js v18+). If not available, install node-fetch or upgrade Node.
 
 (async () => {
-  const base = 'http://localhost:5000';
+  const base = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5006}`;
   const log = (...args) => console.log('[E2E-TEST]', ...args);
 
   // Health check

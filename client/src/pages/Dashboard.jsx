@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { logout as logoutRequest } from '../authService'
 import './Dashboard.css'
 import Toast from '../components/Toast'
 import Sidebar from '../components/Sidebar'
@@ -16,7 +17,6 @@ function Dashboard({ onLogout }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    console.log('Auth Token:', localStorage.getItem('token'));
     const userData = localStorage.getItem('user')
     if (userData) {
       setUser(JSON.parse(userData))
@@ -33,9 +33,13 @@ function Dashboard({ onLogout }) {
     }
   }, [])
 
-  const confirmLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+  const confirmLogout = async () => {
+    try {
+      await logoutRequest()
+    } catch (err) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    }
     onLogout?.()
     navigate('/login', { replace: true })
   }
@@ -89,11 +93,11 @@ function Dashboard({ onLogout }) {
             <h3>Quick Actions</h3>
             <div className="quick-actions">
               <button className="quick-action-btn primary" onClick={() => navigate('/orderbooking')}>
-                <span className="quick-action-icon">➕</span>
+                <span className="quick-action-icon">+</span>
                 <span className="quick-action-text">New Order</span>
               </button>
               <button className="quick-action-btn" onClick={() => navigate('/view-orders')}>
-                <span className="quick-action-icon">📋</span>
+                <span className="quick-action-icon">#</span>
                 <span className="quick-action-text">View Orders</span>
               </button>
             </div>

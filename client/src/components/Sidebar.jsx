@@ -14,9 +14,9 @@ function Sidebar() {
   const { theme, toggleTheme } = useTheme()
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
-    { id: 'orderbooking', label: 'New Order', icon: '📦', path: '/orderbooking' },
-    { id: 'reports', label: 'Report Complaint', icon: '🚩', path: '/reports' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'D', path: '/dashboard' },
+    { id: 'orderbooking', label: 'New Order', icon: '+', path: '/orderbooking' },
+    { id: 'reports', label: 'Report Complaint', icon: '!', path: '/reports' },
   ]
 
 
@@ -97,12 +97,12 @@ function Sidebar() {
             className="sidebar-item sidebar-settings-btn"
             onClick={() => setShowSettingsModal(true)}
           >
-            <span className="sidebar-icon">⚙️</span>
+            <span className="sidebar-icon">*</span>
             <span className="sidebar-label">Settings</span>
           </button>
           {isOpen && (
             <div className="sidebar-venue">
-              <span className="sidebar-icon">📍</span>
+              <span className="sidebar-icon">@</span>
               <span className="sidebar-label">Guljag Industries</span>
             </div>
           )}
@@ -120,7 +120,7 @@ function Sidebar() {
               <h4>Appearance</h4>
               <div className="settings-item">
                 <div className="settings-item-info">
-                  <span className="settings-item-icon">{theme === 'light' ? '☀️' : '🌙'}</span>
+                  <span className="settings-item-icon">{theme === 'light' ? 'Light' : 'Dark'}</span>
                   <div>
                     <span className="settings-item-label">Theme</span>
                     <span className="settings-item-desc">
@@ -129,7 +129,7 @@ function Sidebar() {
                   </div>
                 </div>
                 <button className="theme-toggle-btn" onClick={toggleTheme}>
-                  {theme === 'light' ? '🌙' : '☀️'}
+                  {theme === 'light' ? 'Dark' : 'Light'}
                 </button>
               </div>
             </div>
@@ -143,7 +143,7 @@ function Sidebar() {
                   setShowPasswordModal(true)
                 }}
               >
-                <span>🔑</span>
+                <span>Key</span>
                 <span>Change Password</span>
               </button>
             </div>

@@ -76,13 +76,13 @@ process.on('unhandledRejection', (reason, promise) => {
 const start = async () => {
   try {
     await connectDB();
-    console.log('✅ Database connected');
+    console.log('Database connected');
   } catch (err) {
     console.error('Failed to connect to database:', err.message);
   }
 
   app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
     console.log(`   Health: http://localhost:${PORT}/api/health`);
   });
 };

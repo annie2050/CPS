@@ -8,10 +8,11 @@
 async function test() {
   const email = process.env.TEST_EMAIL || 'test@example.com'
   const password = process.env.TEST_PASSWORD || 'password'
+  const base = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5006}`
 
   try {
     // Login
-    const loginRes = await fetch('http://localhost:5000/api/auth/login', {
+    const loginRes = await fetch(`${base}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -24,7 +25,7 @@ async function test() {
     const token = loginData?.token;
     if (token) {
       // Access protected route with token
-      const dashRes = await fetch('http://localhost:5000/api/dashboard', {
+      const dashRes = await fetch(`${base}/api/dashboard`, {
         method: 'GET',
         headers: { 'Authorization': 'Bearer ' + token },
       });

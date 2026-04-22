@@ -4,7 +4,30 @@
 
 import { TOKEN_EXPIRED_MESSAGE } from './i18n/messages.js';
 import { showBanner } from './utils/banner.js';
- let accessToken = null;
+
+let accessToken = null;
+
+function getAccessToken() {
+  if (!accessToken) {
+    accessToken = localStorage.getItem('token');
+  }
+  return accessToken;
+}
+
+export function setAccessToken(token) {
+  accessToken = token || null;
+  if (token) {
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('token');
+  }
+}
+
+function clearSession() {
+  accessToken = null;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
 
 // Login and store access token in memory
 export async function login(email, password) {
@@ -24,40 +47,36 @@ export async function login(email, password) {
   if (!res.ok) {
     throw new Error(data.error || 'Login failed');
   }
-  accessToken = data.token;
+  setAccessToken(data.token);
   return data.user;
 }
 
 // Refresh the access token using the refresh token cookie
-  async function refreshTokenIfNeeded() {
-    const res = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    if (!res.ok) {
-      // Direct cleanup and redirect for session expiry
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      accessToken = null;
-      
-      window.location.replace('/login');
-      return false;
-    }
-    const data = await res.json();
-    if (data?.token) {
-      accessToken = data.token;
-      return true;
-    }
+async function refreshTokenIfNeeded() {
+  const res = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    clearSession();
     return false;
   }
+  const data = await res.json();
+  if (data?.token) {
+    setAccessToken(data.token);
+    return true;
+  }
+  return false;
+}
 
 
 // Generic fetch with automatic token handling
 export async function fetchWithAuth(input, init = {}) {
   const headers = init.headers ? { ...init.headers } : {};
-  if (accessToken) {
-    headers['Authorization'] = 'Bearer ' + accessToken;
+  const token = getAccessToken();
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token;
   }
   const res = await fetch(input, { ...init, headers });
   if (res.status === 401) {
@@ -69,11 +88,7 @@ export async function fetchWithAuth(input, init = {}) {
       const retry = await fetch(input, { ...init, headers: retryHeaders });
       return retry;
     } else {
-      // Direct cleanup and redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      accessToken = null;
-      window.location.replace('/login');
+      showBanner(TOKEN_EXPIRED_MESSAGE, { redirectUrl: '/login' });
       return Promise.reject(new Error(TOKEN_EXPIRED_MESSAGE));
     }
   }
@@ -81,7 +96,7 @@ export async function fetchWithAuth(input, init = {}) {
 }
 
 export function logout() {
-  accessToken = null;
+  clearSession();
   // Inform backend to clear refresh cookie
   return fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }

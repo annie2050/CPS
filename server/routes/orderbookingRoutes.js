@@ -56,7 +56,7 @@ router.get('/product-details', protect, async (req, res) => {
   }
 })
 
-// Get rate for a product (and manu) – branch-context can be added later
+// Get rate for a product and manufacturer. Branch context can be added later.
 router.get('/rate', protect, async (req, res) => {
   try {
     if (!isDbConnected()) {
@@ -322,6 +322,7 @@ router.get('/orders/:id', protect, async (req, res) => {
 
 // Update Order Route
 router.put('/orders/:id', protect, async (req, res) => {
+  let transaction;
   try {
     if (!isDbConnected()) {
       return res.status(503).json({ success: false, message: 'Database not connected.' });
@@ -342,14 +343,20 @@ router.put('/orders/:id', protect, async (req, res) => {
       items
     } = req.body;
 
+    const parsedBookingDate = parseDate(bookingDate);
+    if (!parsedBookingDate) {
+      return res.status(400).json({ success: false, message: 'Invalid bookingDate format. Please use DD-MM-YYYY or YYYY-MM-DD.' });
+    }
+
     const pool = await poolPromise;
-    const transaction = new sql.Transaction(pool);
+    transaction = new sql.Transaction(pool);
     await transaction.begin();
 
     // 1. Update Header
-    await transaction.request()
+    const updateResult = await transaction.request()
       .input('orderId', sql.NVarChar(64), orderId)
-      .input('bookingDate', sql.DateTime, parseDate(bookingDate))
+      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('bookingDate', sql.DateTime, parsedBookingDate)
       .input('paymentTerm', sql.NVarChar(255), paymentTerm || '')
       .input('validTill', sql.DateTime, parseDate(validTill))
       .input('branchGuid', sql.NVarChar(64), branchGuid)
@@ -358,8 +365,14 @@ router.put('/orders/:id', protect, async (req, res) => {
         UPDATE sm1017_p 
         SET booking_date = @bookingDate, payment_term = @paymentTerm, valid_till = @validTill, 
             branch_guid = @branchGuid, payment_mode = @paymentMode, modify_date = GETDATE()
-        WHERE unqid = @orderId
+        WHERE unqid = @orderId AND customer_guid = @customerGuid
       `);
+
+    if (updateResult.rowsAffected[0] === 0) {
+      await transaction.rollback();
+      transaction = null;
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
 
     // 2. Delete old items and re-insert (simplest way to handle item updates)
     await transaction.request()
@@ -399,8 +412,16 @@ router.put('/orders/:id', protect, async (req, res) => {
                          SELECT * FROM @OrderItems`);
 
     await transaction.commit();
+    transaction = null;
     res.json({ success: true, message: 'Order updated successfully' });
   } catch (err) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackErr) {
+        console.error('Rollback error:', rollbackErr);
+      }
+    }
     console.error('Update Order Error:', err);
     res.status(500).json({ success: false, message: 'Failed to update order.' });
   }
@@ -448,4 +469,3 @@ router.delete('/orders/:id', protect, async (req, res) => {
 
 
 module.exports = router
-

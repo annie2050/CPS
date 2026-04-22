@@ -122,11 +122,11 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
         </div>
         <div className="obd-summary-card">
           <div className="obd-summary-label">Overdue Amount</div>
-          <div className="obd-summary-value obd-summary-currency">₹ {formatNumber(dashboardData?.OVERDUE_AMOUNT)}</div>
+          <div className="obd-summary-value obd-summary-currency">Rs. {formatNumber(dashboardData?.OVERDUE_AMOUNT)}</div>
         </div>
         <div className="obd-summary-card">
           <div className="obd-summary-label">Total Due</div>
-          <div className="obd-summary-value obd-summary-currency">₹ {formatNumber(dashboardData?.DUE_AMOUNT)}</div>
+          <div className="obd-summary-value obd-summary-currency">Rs. {formatNumber(dashboardData?.DUE_AMOUNT)}</div>
         </div>
       </div>
 
@@ -146,7 +146,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
                 <th>Product</th>
                 <th>Status</th>
                 <th>Qty (KG)</th>
-                <th>Amount (₹)</th>
+                <th>Amount (Rs.)</th>
                 <th>Payment</th>
               </tr>
             </thead>
@@ -161,7 +161,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
                     </span>
                   </td>
                   <td>{formatNumber(order.QTY)}</td>
-                  <td className="obd-amount">₹ {formatNumber(order.AMOUNT)}</td>
+                  <td className="obd-amount">Rs. {formatNumber(order.AMOUNT)}</td>
                   <td>
                     <span className={`obd-badge ${getPaymentClass(order.PAYMENT)}`}>
                       {order.PAYMENT}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { setAccessToken } from '../authService'
 import './Login.css'
 import '../styles/global.css'
 
@@ -37,7 +38,7 @@ function Login({ onLogin }) {
         throw new Error(data.error || 'Login failed')
       }
 
-      localStorage.setItem('token', data.token)
+      setAccessToken(data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       // Inform app-level auth state (if provided) so UI can react immediately
       if (typeof onLogin === 'function') {
