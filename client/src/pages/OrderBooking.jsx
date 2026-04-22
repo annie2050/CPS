@@ -148,10 +148,8 @@ function OrderBooking() {
 
       setLoadingDropdowns(true)
       try {
-        const token = localStorage.getItem('token')
-        const res = await fetch(
-          `/api/dashboard/product-details?productGuid=${formData.productGuid}`,
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        const res = await fetchWithAuth(
+          `/api/dashboard/product-details?productGuid=${formData.productGuid}`
         )
         const data = await res.json()
         if (data.success) {
@@ -186,10 +184,8 @@ function OrderBooking() {
         return
       }
       try {
-        const token = localStorage.getItem('token')
-        const res = await fetch(
-          `/api/dashboard/rate?productGuid=${formData.productGuid}&branchGuid=${formData.branchGuid}&mode=${formData.modeOfPayment}`,
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        const res = await fetchWithAuth(
+          `/api/dashboard/rate?productGuid=${formData.productGuid}&branchGuid=${formData.branchGuid}&mode=${formData.modeOfPayment}`
         )
         const data = await res.json()
         if (data.success) {
@@ -251,11 +247,10 @@ function OrderBooking() {
       }
       const validTill = validTillDate.toISOString();
 
-      const res = await fetch(isEditMode ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders', {
+      const res = await fetchWithAuth(isEditMode ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders', {
         method: isEditMode ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           customerGuid: customerGuid,
