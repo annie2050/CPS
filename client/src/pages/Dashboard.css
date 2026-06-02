@@ -57,27 +57,7 @@
 }
 
 .dashboard-header {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
   margin-bottom: 24px;
-}
-
-.welcome-card {
-  background: var(--gradient-primary);
-  color: white;
-  padding: 40px;
-  border-radius: 10px;
-}
-
-.welcome-card h1 {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
-.welcome-card p {
-  font-size: 16px;
-  opacity: 0.9;
 }
 
 .quick-actions-card {
@@ -96,15 +76,15 @@
 
 .quick-actions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 16px;
 }
 
 .quick-action-btn {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 14px 24px;
   background: var(--hover-bg);
   border: none;
   border-radius: 8px;
@@ -112,6 +92,7 @@
   font-size: 14px;
   color: var(--text-primary);
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .quick-action-btn:hover {
@@ -234,14 +215,6 @@
     padding: 16px;
   }
   
-  .welcome-card {
-    padding: 24px;
-  }
-  
-  .welcome-card h1 {
-    font-size: 24px;
-  }
-  
   .quick-actions-card {
     padding: 16px;
   }
@@ -273,13 +246,5 @@
 @media (max-width: 480px) {
   .dashboard-content {
     padding: 12px;
-  }
-  
-  .welcome-card {
-    padding: 20px;
-  }
-  
-  .welcome-card h1 {
-    font-size: 20px;
   }
 }

@@ -149,7 +149,7 @@
   border-color: var(--color-danger);
 }
 
-.loading-state, .error-state {
+.loading-state, .error-state, .empty-state {
   text-align: center;
   padding: 60px 20px;
   color: var(--text-secondary);
@@ -163,6 +163,17 @@
   border: 1px solid var(--color-error);
   max-width: 600px;
   margin: 0 auto;
+}
+
+.empty-state {
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.reason-cell {
+  max-width: 250px;
+  color: var(--color-danger);
 }
 
 @media (max-width: 768px) {

@@ -473,8 +473,8 @@ router.post('/save-order', protect, async (req, res) => {
       for (const item of items) {
         const itemUnqid = 'ITEM-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
         const itemQuery = `
-          INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date)
-          VALUES (@unqid, @parentId, @productGuid, @mfgGuid, @categoryGuid, @unitGuid, @qty, @rate, @amount, @deliveryDate)
+          INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date)
+          VALUES (@unqid, @parentId, @productGuid, @mfgGuid, @categoryGuid, @unitGuid, @qty, @rate, @requestRate, @amount, @deliveryDate)
         `;
         
         await transaction.request()
@@ -486,6 +486,7 @@ router.post('/save-order', protect, async (req, res) => {
           .input('unitGuid', sql.NVarChar(64), item.unitGuid)
           .input('qty', sql.Decimal(18, 4), item.qty)
           .input('rate', sql.Decimal(18, 4), item.rate)
+          .input('requestRate', sql.Decimal(18, 3), item.requestRate ?? null)
           .input('amount', sql.Decimal(18, 4), item.amount)
           .input('deliveryDate', sql.DateTime, item.deliveryDate ? new Date(item.deliveryDate) : null)
           .query(itemQuery);

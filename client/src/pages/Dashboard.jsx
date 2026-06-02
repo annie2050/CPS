@@ -84,12 +84,7 @@ function Dashboard({ onLogout }) {
 
       <main className="dashboard-content" style={{ paddingTop: 0 }}>
         <div className="dashboard-header">
-          <div className="welcome-card">
-            <h1>Welcome to Customer Portal</h1>
-            <p>You have successfully logged in.</p>
-          </div>
-          
-        <div className="quick-actions-card">
+          <div className="quick-actions-card">
             <h3>Quick Actions</h3>
             <div className="quick-actions">
               <button className="quick-action-btn primary" onClick={() => navigate('/orderbooking')}>
@@ -99,6 +94,10 @@ function Dashboard({ onLogout }) {
               <button className="quick-action-btn" onClick={() => navigate('/view-orders')}>
                 <span className="quick-action-icon">#</span>
                 <span className="quick-action-text">View Orders</span>
+              </button>
+              <button className="quick-action-btn" onClick={() => navigate('/order-status')}>
+                <span className="quick-action-icon">S</span>
+                <span className="quick-action-text">Order Status</span>
               </button>
             </div>
           </div>

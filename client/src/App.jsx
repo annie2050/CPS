@@ -6,6 +6,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const OrderBooking = lazy(() => import('./pages/OrderBooking'))
 const ViewOrders = lazy(() => import('./pages/ViewOrders'))
+const OrderStatus = lazy(() => import('./pages/OrderStatus'))
 const NewOrder = lazy(() => import('./pages/NewOrder'))
 const ReportComplaint = lazy(() => import('./pages/ReportComplaint'))
 const AppDemo = lazy(() => import('./demo/AppDemo.jsx'))
@@ -83,6 +84,16 @@ function App() {
               element={
                 isAuthenticated ? (
                   <ViewOrders />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/order-status" 
+              element={
+                isAuthenticated ? (
+                  <OrderStatus />
                 ) : (
                   <Navigate to="/login" replace />
                 )

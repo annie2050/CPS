@@ -9,13 +9,22 @@ function ViewOrders() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const res = await fetchWithAuth('/api/orderbooking/list');
         const data = await res.json();
         if (data.success) {
-          setOrders(data.orders);
+          const placedOrders = data.orders.filter(o => !o.order_status || o.order_status === 'placed' || o.order_status === '' || o.order_status === 'new');
+          setOrders(placedOrders);
         } else {
           setError(data.message || 'Failed to fetch orders');
         }
@@ -45,6 +54,22 @@ function ViewOrders() {
       }
   };
 
+const getStatusBadge = (order) => {
+    if (order.order_status === 'cancelled') {
+      return <span className="status-badge cancelled" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Cancelled</span>;
+    }
+    if (order.order_status === 'delivered') {
+      return <span className="status-badge delivered" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Delivered</span>;
+    }
+    if (order.order_status === 'processed') {
+      return <span className="status-badge processed" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Processed</span>;
+    }
+    if (order.order_status === 'new') {
+      return <span className="status-badge new" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>New</span>;
+    }
+    return <span className="status-badge">Placed</span>;
+  };
+
   return (
     <div className="view-orders-container">
       <div className="dashboard-nav">
@@ -59,6 +84,8 @@ function ViewOrders() {
           <div className="loading-state">Loading...</div>
         ) : error ? (
           <div className="error-state">{error}</div>
+        ) : orders.length === 0 ? (
+          <div className="empty-state">No orders found.</div>
         ) : (
           <div className="orders-card">
             <table className="orders-table">
@@ -75,11 +102,11 @@ function ViewOrders() {
           <tbody>
             {orders.map(order => (
               <tr key={order.unqid}>
-                <td title={order.products}>{order.products}</td>
+                <td>{order.productName || order.products}</td>
                 <td>{order.total_qty}</td>
-                <td>{new Date(order.booking_date).toLocaleDateString()}</td>
+                <td>{formatDate(order.booking_date)}</td>
                 <td>{order.payment_mode}</td>
-                <td><span className="status-badge">Placed</span></td>
+                <td>{getStatusBadge(order)}</td>
                  <td className="actions-cell">
                      <div className="actions-wrapper">
                          <button className="action-btn edit" onClick={() => updateOrder(order.unqid)}>Edit</button>

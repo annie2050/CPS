@@ -85,7 +85,7 @@ function ReportComplaint() {
                 <option value="">No specific order</option>
                 {orders.map(order => (
                   <option key={order.unqid} value={order.unqid}>
-                    Order {order.unqid.slice(0, 8)}... - {order.products}
+                    {order.productName ? `${order.productName} (Qty: ${order.total_qty})` : `Order ${order.unqid.slice(0, 8)}...`}
                   </option>
                 ))}
               </select>

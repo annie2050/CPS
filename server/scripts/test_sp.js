@@ -24,9 +24,10 @@ async function test() {
     itemsTable.columns.add('unit_guid', sql.NVarChar(64), { nullable: true });
     itemsTable.columns.add('qty', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('rate', sql.Decimal(18, 4), { nullable: true });
+    itemsTable.columns.add('request_rate', sql.Decimal(18, 3), { nullable: true });
     itemsTable.columns.add('amount', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('delivery_date', sql.DateTime, { nullable: true });
-    itemsTable.rows.add('test-item-1', 'test-header-1', 'prod-1', 'mfg-1', 'cat-1', 'unit-1', 1, 100, 100, new Date());
+    itemsTable.rows.add('test-item-1', 'test-header-1', 'prod-1', 'mfg-1', 'cat-1', 'unit-1', 1, 100, 120, 100, new Date());
 
     const request = pool.request();
     request.input('OrderHeader', headerTable);

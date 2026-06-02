@@ -40,6 +40,14 @@ BEGIN
     );
     PRINT 'sm1017_p table created successfully';
 END
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('sm1017_p') AND name = 'request_rate')
+BEGIN
+    ALTER TABLE sm1017_p ADD request_rate DECIMAL(18,3);
+END
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('sm1017_p') AND name = 'rate')
+BEGIN
+    ALTER TABLE sm1017_p ADD rate DECIMAL(18,4);
+END
 
 -- Create sm1017_pc (Order Items) if it doesn't exist
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'sm1017_pc')
@@ -55,9 +63,19 @@ BEGIN
         rate DECIMAL(18,4),
         amount DECIMAL(18,4),
         delivery_date DATETIME,
+        request_rate DECIMAL(18,3),
         entry_date DATETIME DEFAULT GETDATE(),
         modify_date DATETIME DEFAULT GETDATE(),
         CONSTRAINT FK_sm1017_pc_parent FOREIGN KEY (parent_id) REFERENCES sm1017_p(unqid)
     );
     PRINT 'sm1017_pc table created successfully';
+END
+ELSE
+BEGIN
+    -- Add request_rate column if it doesn't exist
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('sm1017_pc') AND name = 'request_rate')
+    BEGIN
+        ALTER TABLE sm1017_pc ADD request_rate DECIMAL(18,3);
+        PRINT 'request_rate column added to sm1017_pc';
+    END
 END

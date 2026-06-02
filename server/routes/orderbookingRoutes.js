@@ -121,6 +121,7 @@ router.post('/orders', protect, async (req, res) => {
       branchGuid,
       modeOfPayment,
       rate,
+      requestRate,
       items
     } = req.body;
 
@@ -176,6 +177,7 @@ router.post('/orders', protect, async (req, res) => {
     itemsTable.columns.add('unit_guid', sql.NVarChar(64), { nullable: true });
     itemsTable.columns.add('qty', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('rate', sql.Decimal(18, 4), { nullable: true });
+    itemsTable.columns.add('request_rate', sql.Decimal(18, 3), { nullable: true });
     itemsTable.columns.add('amount', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('delivery_date', sql.DateTime, { nullable: true });
 
@@ -191,6 +193,7 @@ router.post('/orders', protect, async (req, res) => {
         unitGuid,
         item.qty,
         rate || 0,
+        item.requestRate || null,
         (rate || 0) * item.qty,
         deliveryDate
       );
@@ -225,12 +228,15 @@ router.get('/list', protect, async (req, res) => {
           p.unqid, 
           p.booking_date, 
           p.payment_mode,
-          (SELECT STRING_AGG(CAST(prod.sm206_7 AS NVARCHAR(MAX)), ', ') 
-           FROM sm1017_pc pc2 
-           JOIN sm206 prod ON CAST(pc2.product_guid AS NVARCHAR(64)) = CAST(prod.sm206_2 AS NVARCHAR(64))
-           WHERE pc2.parent_id = p.unqid) AS products,
-          (SELECT SUM(qty) FROM sm1017_pc WHERE parent_id = p.unqid) AS total_qty
+          pc.order_status,
+          pc.cancel_reason,
+          pc.order_statuss,
+          pc.product_guid AS products,
+          pc.qty AS total_qty,
+          prod.sm206_7 AS productName
         FROM sm1017_p p
+        LEFT JOIN sm1017_pc pc ON pc.parent_id = p.unqid
+        LEFT JOIN sm206 prod ON prod.sm206_2 = pc.product_guid
         WHERE p.customer_guid = @customerGuid
         ORDER BY p.entry_date DESC
       `);
@@ -240,6 +246,40 @@ router.get('/list', protect, async (req, res) => {
   } catch (err) {
     console.error('List Orders Error:', err);
     res.status(500).json({ success: false, message: 'Failed to list orders.' });
+  }
+});
+
+// Get Non-Placed Orders Route
+router.get('/updated', protect, async (req, res) => {
+  try {
+    console.log('Fetching cancelled orders for customer:', req.user.id);
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .query(`
+        SELECT 
+          p.unqid, 
+          p.booking_date, 
+          p.payment_mode,
+          pc.order_status,
+          pc.cancel_reason,
+          pc.order_statuss,
+          pc.product_guid AS products,
+          pc.qty AS total_qty,
+          prod.sm206_7 AS productName
+        FROM sm1017_p p
+        INNER JOIN sm1017_pc pc ON pc.parent_id = p.unqid
+        LEFT JOIN sm206 prod ON prod.sm206_2 = pc.product_guid
+        WHERE p.customer_guid = @customerGuid
+          AND pc.order_status NOT IN ('placed', '', 'new')
+        ORDER BY p.entry_date DESC
+      `);
+
+    console.log('Cancelled orders found:', result.recordset.length);
+    res.json({ success: true, orders: result.recordset });
+  } catch (err) {
+    console.error('List Cancelled Orders Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to list cancelled orders.', error: err.message });
   }
 });
 
@@ -289,7 +329,7 @@ router.get('/orders/:id', protect, async (req, res) => {
     // 2. Get Items
     const itemsResult = await pool.request()
       .input('orderId', sql.NVarChar(64), orderId)
-      .query(`SELECT unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date FROM sm1017_pc WHERE parent_id = @orderId`);
+      .query(`SELECT unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date, order_status, cancel_reason, order_statuss FROM sm1017_pc WHERE parent_id = @orderId`);
     
     const items = itemsResult.recordset;
     
@@ -306,11 +346,22 @@ router.get('/orders/:id', protect, async (req, res) => {
         branchGuid: header.branch_guid,
         modeOfPayment: header.payment_mode,
         productGuid: mainItem.product_guid,
+        manuGuid: mainItem.mfg_guid,
+        categoryGuid: mainItem.category_guid,
         unitGuid: mainItem.unit_guid,
         qty: items.reduce((sum, item) => sum + Number(item.qty), 0),
+        rate: mainItem.rate,
+        requestRate: mainItem.request_rate ?? mainItem.Request_Rate ?? mainItem.RequestRate ?? null,
+        orderStatus: mainItem.order_status,
+        cancelReason: mainItem.cancel_reason,
+        orderStatuss: mainItem.order_statuss,
         items: items.map(item => ({
           qty: item.qty,
-          deliveryDate: item.delivery_date
+          requestRate: item.request_rate ?? item.Request_Rate ?? item.RequestRate ?? null,
+          deliveryDate: item.delivery_date,
+          orderStatus: item.order_status,
+          cancelReason: item.cancel_reason,
+          orderStatuss: item.order_statuss
         }))
       } 
     });
@@ -340,6 +391,7 @@ router.put('/orders/:id', protect, async (req, res) => {
       branchGuid,
       modeOfPayment,
       rate,
+      requestRate,
       items
     } = req.body;
 
@@ -361,10 +413,13 @@ router.put('/orders/:id', protect, async (req, res) => {
       .input('validTill', sql.DateTime, parseDate(validTill))
       .input('branchGuid', sql.NVarChar(64), branchGuid)
       .input('paymentMode', sql.NVarChar(50), modeOfPayment || '')
+      .input('rate', sql.Decimal(18, 4), rate ? Number(rate) : null)
+      .input('requestRate', sql.Decimal(18, 3), requestRate ? Number(requestRate) : null)
       .query(`
         UPDATE sm1017_p 
         SET booking_date = @bookingDate, payment_term = @paymentTerm, valid_till = @validTill, 
-            branch_guid = @branchGuid, payment_mode = @paymentMode, modify_date = GETDATE()
+            branch_guid = @branchGuid, payment_mode = @paymentMode, 
+            rate = @rate, request_rate = @requestRate, modify_date = GETDATE()
         WHERE unqid = @orderId AND customer_guid = @customerGuid
       `);
 
@@ -388,6 +443,7 @@ router.put('/orders/:id', protect, async (req, res) => {
     itemsTable.columns.add('unit_guid', sql.NVarChar(64), { nullable: true });
     itemsTable.columns.add('qty', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('rate', sql.Decimal(18, 4), { nullable: true });
+    itemsTable.columns.add('request_rate', sql.Decimal(18, 3), { nullable: true });
     itemsTable.columns.add('amount', sql.Decimal(18, 4), { nullable: true });
     itemsTable.columns.add('delivery_date', sql.DateTime, { nullable: true });
 
@@ -401,6 +457,7 @@ router.put('/orders/:id', protect, async (req, res) => {
         unitGuid,
         item.qty,
         rate || 0,
+        item.requestRate ?? requestRate ?? null,
         (rate || 0) * item.qty,
         parseDate(item.deliveryDate) || new Date()
       );
@@ -408,8 +465,8 @@ router.put('/orders/:id', protect, async (req, res) => {
 
     const request = transaction.request();
     request.input('OrderItems', itemsTable);
-    await request.query(`INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date) 
-                         SELECT * FROM @OrderItems`);
+    await request.query(`INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date) 
+                         SELECT unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date FROM @OrderItems`);
 
     await transaction.commit();
     transaction = null;

@@ -26,6 +26,7 @@ function OrderBooking() {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [rate, setRate] = useState(0)
   const [loadingDropdowns, setLoadingDropdowns] = useState(false)
+  const [localRequestRate, setLocalRequestRate] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -51,17 +52,24 @@ function OrderBooking() {
             ...prev,
             bookingDate: order.bookingDate ? new Date(order.bookingDate).toISOString().split('T')[0] : today,
             productGuid: order.productGuid || '',
+            manuGuid: order.manuGuid || '',
+            categoryGuid: order.categoryGuid || '',
             unitGuid: order.unitGuid || '',
             branchGuid: order.branchGuid || '',
             modeOfPayment: order.modeOfPayment || '',
             paymentTerm: order.paymentTerm || '',
             qty: order.qty || '',
+            rate: order.rate || '',
+            requestRate: order.requestRate ?? '',
             validTillDays: validTillDays
           }))
+          setRate(order.rate || 0)
+          setLocalRequestRate(order.requestRate ?? '')
           if (order.items && order.items.length > 0) {
             setGridData(order.items.map(item => ({
               date: item.deliveryDate ? new Date(item.deliveryDate).toISOString().split('T')[0] : '',
-              qty: item.qty || ''
+              qty: item.qty || '',
+              requestRate: item.requestRate ?? item.request_rate ?? null
             })))
           }
         } else {
@@ -90,6 +98,7 @@ function OrderBooking() {
     unitGuid: '',
     branchGuid: '',
     rate: '',
+    requestRate: '',
     modeOfPayment: '',
     paymentTerm: '',
     validTillDays: '',
@@ -97,8 +106,14 @@ function OrderBooking() {
   })
 
   const [gridData, setGridData] = useState([
-    { date: '', qty: '' }
+    { date: '', qty: '', requestRate: '' }
   ])
+
+  useEffect(() => {
+    if (formData.requestRate !== undefined) {
+      setLocalRequestRate(formData.requestRate)
+    }
+  }, [formData.requestRate])
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -180,9 +195,9 @@ function OrderBooking() {
     async function fetchRate() {
       if (!formData.productGuid || !formData.branchGuid || !formData.modeOfPayment) {
         setRate(0)
-        setFormData(prev => ({ ...prev, rate: '' }))
         return
       }
+      if (isEditMode) return
       try {
         const res = await fetchWithAuth(
           `/api/dashboard/rate?productGuid=${formData.productGuid}&branchGuid=${formData.branchGuid}&mode=${formData.modeOfPayment}`
@@ -190,18 +205,21 @@ function OrderBooking() {
         const data = await res.json()
         if (data.success) {
           setRate(data.rate || 0)
-          setFormData(prev => ({ ...prev, rate: data.rate || 0 }))
         }
       } catch (err) {
         console.error('Failed to fetch rate:', err)
       }
     }
     fetchRate()
-  }, [formData.productGuid, formData.branchGuid, formData.modeOfPayment])
+  }, [formData.productGuid, formData.branchGuid, formData.modeOfPayment, isEditMode])
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === 'requestRate') {
+      setFormData(prev => ({ ...prev, requestRate: value }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleGridChange = (index, field, value) => {
@@ -211,7 +229,7 @@ function OrderBooking() {
   }
 
   const addRow = () => {
-    setGridData([...gridData, { date: '', qty: '' }])
+    setGridData([...gridData, { date: '', qty: '', requestRate: '' }])
   }
 
   const deleteRow = (index) => {
@@ -228,6 +246,14 @@ function OrderBooking() {
     const validGridData = gridData.filter((row) => row.date && row.qty)
     if (validGridData.length === 0) {
       setMessage({ type: 'error', text: 'Please add at least one delivery schedule.' })
+      setSaving(false)
+      return
+    }
+
+    const totalGridQty = validGridData.reduce((sum, row) => sum + Number(row.qty), 0)
+    const mainQty = Number(formData.qty)
+    if (totalGridQty !== mainQty) {
+      setMessage({ type: 'error', text: `Total quantity in delivery schedule (${totalGridQty}) must equal the order quantity (${mainQty}).` })
       setSaving(false)
       return
     }
@@ -259,13 +285,15 @@ function OrderBooking() {
           categoryGuid: formData.categoryGuid,
           unitGuid: formData.unitGuid,
           rate: Number(rate),
+          requestRate: formData.requestRate ? Number(formData.requestRate) : null,
           qty: Number(formData.qty),
           paymentTerm: formData.paymentTerm,
           bookingDate: formData.bookingDate,
           validTill: validTill,
           items: validGridData.map(item => ({
             deliveryDate: item.date,
-            qty: Number(item.qty)
+            qty: Number(item.qty),
+            requestRate: Number(item.requestRate) || null
           })),
           modeOfPayment: formData.modeOfPayment,
           branchGuid: formData.branchGuid
@@ -290,12 +318,14 @@ function OrderBooking() {
           unitGuid: '',
           branchGuid: '',
           rate: '',
+          requestRate: '',
           modeOfPayment: '',
           paymentTerm: '',
           validTillDays: '',
           qty: '',
         })
-        setGridData([{ date: '', qty: '' }])
+        setLocalRequestRate('')
+        setGridData([{ date: '', qty: '', requestRate: '' }])
         setManufacturers([])
         setCategories([])
         setUnits([])
@@ -514,6 +544,21 @@ function OrderBooking() {
                   disabled
                 />
               </div>
+
+              <div className="form-group">
+                <label htmlFor="requestRate">Request Rate</label>
+                <input
+                  type="number"
+                  id="requestRate"
+                  name="requestRate"
+                  value={localRequestRate}
+                  onChange={(e) => {
+                    setLocalRequestRate(e.target.value)
+                    setFormData(prev => ({ ...prev, requestRate: e.target.value }))
+                  }}
+                  placeholder="Enter request rate"
+                />
+              </div>
             </div>
           </div>
 
@@ -523,6 +568,7 @@ function OrderBooking() {
               <div className="delivery-header">
                 <span>Expected Delivery Date</span>
                 <span>Quantity</span>
+                <span>Request Rate</span>
                 <span>Action</span>
               </div>
               {gridData.map((row, index) => (
@@ -540,6 +586,13 @@ function OrderBooking() {
                     onChange={(e) => handleGridChange(index, 'qty', e.target.value)}
                     placeholder="Qty"
                     required
+                  />
+                  <input
+                    type="number"
+                    value={row.requestRate || ''}
+                    onChange={(e) => handleGridChange(index, 'requestRate', e.target.value)}
+                    placeholder="Req Rate"
+                    step="0.01"
                   />
                   <button
                     type="button"

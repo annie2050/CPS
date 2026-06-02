@@ -45,10 +45,20 @@ router.get('/', protect, async (req, res) => {
     const result = await pool.request()
       .input('customerGuid', sql.NVarChar(64), customerGuid)
       .query(`
-        SELECT unqid, order_id, category, message, status, entry_date 
-        FROM sm1018_complaints 
-        WHERE customer_guid = @customerGuid 
-        ORDER BY entry_date DESC
+        SELECT 
+          c.unqid, 
+          c.order_id, 
+          c.category, 
+          c.message, 
+          c.status, 
+          c.entry_date,
+          prod.sm206_7 AS productName
+        FROM sm1018_complaints c
+        LEFT JOIN sm1017_p o ON o.unqid = c.order_id
+        LEFT JOIN sm1017_pc oi ON oi.parent_id = o.unqid
+        LEFT JOIN sm206 prod ON prod.sm206_2 = oi.product_guid
+        WHERE c.customer_guid = @customerGuid 
+        ORDER BY c.entry_date DESC
       `);
 
     res.json({ success: true, complaints: result.recordset || [] });

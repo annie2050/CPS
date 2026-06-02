@@ -31,6 +31,7 @@ CREATE TYPE dbo.OrderItemType AS TABLE (
     unit_guid NVARCHAR(64),
     qty DECIMAL(18,4),
     rate DECIMAL(18,4),
+    request_rate DECIMAL(18,3),
     amount DECIMAL(18,4),
     delivery_date DATETIME
 );
@@ -50,8 +51,8 @@ BEGIN
         FROM @OrderHeader;
 
         -- Insert Order Items
-        INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date)
-        SELECT unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, amount, delivery_date
+        INSERT INTO sm1017_pc (unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date)
+        SELECT unqid, parent_id, product_guid, mfg_guid, category_guid, unit_guid, qty, rate, request_rate, amount, delivery_date
         FROM @OrderItems;
 
         COMMIT TRANSACTION;
