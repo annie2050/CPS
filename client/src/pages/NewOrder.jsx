@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { fetchWithAuth } from '../authService'
 
 // Simple New Order page that posts to the server to create a new order
 function NewOrder() {
@@ -38,10 +39,7 @@ function NewOrder() {
   const fetchOrderDetails = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/orderbooking/orders/${orderId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`/api/orderbooking/orders/${orderId}`);
       const data = await res.json();
       if (data.success) {
         const order = data.order;
@@ -65,14 +63,11 @@ function NewOrder() {
 
   // Minimal fetch helpers (no error logs on production)
   const fetchLists = async () => {
-    const token = localStorage.getItem('token')
-    if (!token) return { products: [], branches: [], units: [] }
-    const headers = { 'Authorization': `Bearer ${token}` }
     try {
       const [p, b, u] = await Promise.all([
-        fetch('/api/dashboard/products', { headers }),
-        fetch(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`, { headers }),
-        fetch('/api/dashboard/units', { headers }),
+        fetchWithAuth('/api/dashboard/products'),
+        fetchWithAuth(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`),
+        fetchWithAuth('/api/dashboard/units'),
       ])
       const prod = await p.json()
       const branData = await b.json()
@@ -80,8 +75,6 @@ function NewOrder() {
       
       // Check for expired session
       if (p.status === 401 || b.status === 401) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
         setError('Please log in again, your session has expired.')
         setTimeout(() => { window.location.href = '/login' }, 2000)
         return { products: [], branches: [], units: [] }
@@ -130,13 +123,12 @@ function NewOrder() {
         expectedDeliveryDates: [{ date: expectedDeliveryDate || bookingDate }],
         modeOfPayment
       }
-      const token = localStorage.getItem('token')
       const method = orderId ? 'PUT' : 'POST';
       const url = orderId ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders';
       
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       const data = await res.json()

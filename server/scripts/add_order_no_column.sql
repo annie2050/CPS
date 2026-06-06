@@ -1,0 +1,1 @@
+ALTER TABLE sm1017_p ADD order_no NVARCHAR(50);
