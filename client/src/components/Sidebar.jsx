@@ -89,6 +89,13 @@ function Sidebar() {
               <span className="sidebar-label">{item.label}</span>
             </button>
           ))}
+          <button
+            className="sidebar-item"
+            onClick={() => navigate('/users')}
+          >
+            <span className="sidebar-icon">U</span>
+            <span className="sidebar-label">Add Role</span>
+          </button>
         </div>
 
         <div className="sidebar-footer">

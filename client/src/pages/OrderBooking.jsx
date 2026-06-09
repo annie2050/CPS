@@ -85,9 +85,9 @@ function OrderBooking() {
     fetchOrderDetails()
   }, [isEditMode, orderId])
 
-  const customerGuid = user?.id || (() => {
+  const customerGuid = user?.sm19_unqid || (() => {
     const userData = localStorage.getItem('user')
-    return userData ? JSON.parse(userData)?.id : null
+    return userData ? JSON.parse(userData)?.sm19_unqid : null
   })()
 
   const [formData, setFormData] = useState({
@@ -352,7 +352,7 @@ function OrderBooking() {
       <nav className="order-page-nav">
         <h2>Customer Portal</h2>
         <div className="nav-user">
-          <span>Welcome, {user?.name || user?.email}</span>
+          <span>Welcome, {user?.name} ({user?.company})</span>
           <button onClick={() => navigate('/dashboard')} className="nav-btn">
             Dashboard
           </button>

@@ -42,6 +42,7 @@ app.use((req, res, next) => {
   app.use('/api/reports', require('./routes/reportRoutes'));
   // Profile endpoints
   app.use('/api/profile', require('./routes/profile'));
+  app.use('/api/users', require('./routes/userManagement'));
 
 // Dashboard v2 route removed; using only the original protected dashboard endpoints
 

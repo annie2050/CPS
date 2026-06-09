@@ -50,7 +50,7 @@ function Dashboard({ onLogout }) {
       <nav className="dashboard-nav">
         <h2>Customer Portal</h2>
         <div className="nav-user">
-          <span>Welcome, {user?.name || user?.email}</span>
+          <span>Welcome, {user?.company}, {user?.name}</span>
           <button onClick={() => setShowLogoutConfirm(true)} className="logout-button">
             Logout
           </button>
@@ -103,7 +103,7 @@ function Dashboard({ onLogout }) {
           </div>
         </div>
 
-        <OrderBookingDashboard customerGuid={user?.id} />
+        <OrderBookingDashboard customerGuid={user?.sm19_unqid} />
       </main>
       {showToast && (
         <Toast message="Logged in" duration={2500} onClose={() => setShowToast(false)} />

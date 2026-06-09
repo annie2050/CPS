@@ -18,7 +18,7 @@ router.get('/', protect, (req, res) => {
 // Orders data for a customer
 router.get('/orders', protect, async (req, res) => {
   try {
-    const customerGuidFromToken = req.user?.id;
+    const customerGuidFromToken = req.user?.sm19_unqid;
     const customerGuid = req.query.customerGuid || customerGuidFromToken;
 
     if (!customerGuid) {
@@ -45,7 +45,7 @@ router.get('/orders', protect, async (req, res) => {
       FROM SM1016 S
       LEFT JOIN SM1008 C ON C.SM1008_31 = S.UNQID
       LEFT JOIN SM206 P ON P.SM206_2 = S.SM1016_8
-      WHERE S.SM1016_7 = @customerGuid
+      WHERE S.SM1016_7 = @sm19_unqid
       GROUP BY 
         S.SM1016_5, P.SM206_7, S.SM1016_35, 
         S.SM1016_11, S.SM1016_23
@@ -53,7 +53,7 @@ router.get('/orders', protect, async (req, res) => {
     `;
 
     const result = await pool.request()
-      .input('customerGuid', sql.NVarChar(50), String(customerGuid))
+      .input('sm19_unqid', sql.NVarChar(50), String(customerGuid))
       .query(query);
 
     return res.json({
@@ -73,7 +73,7 @@ router.get('/orders', protect, async (req, res) => {
 
 router.get('/dashboard-data', protect, async (req, res) => {
   try {
-    const customerGuidFromToken = req.user?.id;
+    const customerGuidFromToken = req.user?.sm19_unqid;
     const customerGuid = req.query.customerGuid || customerGuidFromToken;
 
     if (!customerGuid) {
@@ -119,11 +119,11 @@ router.get('/dashboard-data', protect, async (req, res) => {
       LEFT JOIN ORDERS O ON C.UNQID = O.CUSTOMERUNQ
       LEFT JOIN PENDING P ON C.UNQID = P.CUSTOMERUNQ
       LEFT JOIN FINANCE F ON C.UNQID = F.CUSTOMERUNQ
-      WHERE C.UNQID = @customerGuid
+      WHERE C.UNQID = @sm19_unqid
     `;
 
     const result = await pool.request()
-      .input('customerGuid', sql.NVarChar(50), String(customerGuid))
+      .input('sm19_unqid', sql.NVarChar(50), String(customerGuid))
       .query(query);
 
     return res.json({

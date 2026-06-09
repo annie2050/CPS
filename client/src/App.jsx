@@ -9,6 +9,7 @@ const ViewOrders = lazy(() => import('./pages/ViewOrders'))
 const OrderStatus = lazy(() => import('./pages/OrderStatus'))
 const NewOrder = lazy(() => import('./pages/NewOrder'))
 const ReportComplaint = lazy(() => import('./pages/ReportComplaint'))
+const UserManagement = lazy(() => import('./pages/UserManagement'))
 const AppDemo = lazy(() => import('./demo/AppDemo.jsx'))
 
 import './index.css'
@@ -99,7 +100,7 @@ function App() {
                 )
               } 
             />
-            <Route 
+             <Route 
               path="/reports" 
               element={
                 isAuthenticated ? (
@@ -110,7 +111,18 @@ function App() {
               } 
             />
             <Route 
+              path="/users" 
+              element={
+                isAuthenticated ? (
+                  <UserManagement />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              } 
+            />
+            <Route 
               path="/new-order" 
+
               element={
                 isAuthenticated ? (
                   <NewOrder />

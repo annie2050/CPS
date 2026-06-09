@@ -13,7 +13,7 @@ function OrderBookingDashboard({ customerGuid: propCustomerGuid }) {
 
   const customerGuid = propCustomerGuid || (() => {
     const userData = localStorage.getItem('user')
-    return userData ? JSON.parse(userData)?.id : null
+    return userData ? JSON.parse(userData)?.sm19_unqid : null
   })()
 
   useEffect(() => {

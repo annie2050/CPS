@@ -19,7 +19,7 @@ router.post('/login', async (req, res) => {
     
     const result = await pool.request()
       .input('email', sql.VarChar, email)
-      .query('SELECT unqid AS id, sm19_17 AS email, sm19_5 AS name, sm19_12 AS password FROM sm19 WHERE sm19_17 = @email');
+      .query('SELECT user_id AS id, email, full_name AS name, company_name, sm19_unqid, role, password_hash AS password FROM users WHERE email = @email AND is_active = 1');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -27,18 +27,20 @@ router.post('/login', async (req, res) => {
 
     const user = result.recordset[0];
 
-    if (user.password !== password) {
+    const isMatch = (password === user.password);
+
+    if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Create access and refresh tokens
     const accessToken = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { id: user.id, email: user.email, name: user.name, company: user.company_name, sm19_unqid: user.sm19_unqid, role: user.role },
       JWT_SECRET,
       { expiresIn: '15m' }
     );
     const refreshToken = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { id: user.id, email: user.email, name: user.name, company: user.company_name, sm19_unqid: user.sm19_unqid, role: user.role },
       JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
@@ -57,7 +59,10 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        company: user.company_name,
+        sm19_unqid: user.sm19_unqid,
+        role: user.role
       }
     });
 
@@ -77,7 +82,7 @@ router.post('/refresh', (req, res) => {
     const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
     // Rotate refresh token as part of refresh flow
     const newRefresh = jwt.sign(
-      { id: payload.id, email: payload.email, name: payload.name },
+      { id: payload.id, email: payload.email, name: payload.name, company: payload.company },
       JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
@@ -90,7 +95,7 @@ router.post('/refresh', (req, res) => {
     });
 
     const newAccess = jwt.sign(
-      { id: payload.id, email: payload.email, name: payload.name },
+      { id: payload.id, email: payload.email, name: payload.name, company: payload.company },
       JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -119,23 +124,26 @@ router.put('/change-password', async (req, res) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const pool = await connectDB();
-    
     const userResult = await pool.request()
       .input('userId', sql.NVarChar(50), decoded.id)
-      .query('SELECT sm19_12 AS password FROM sm19 WHERE unqid = @userId');
+      .query('SELECT password_hash AS password FROM users WHERE user_id = @userId');
 
     if (userResult.recordset.length === 0) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (userResult.recordset[0].password !== currentPassword) {
+    const isMatch = (currentPassword === userResult.recordset[0].password);
+
+    if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Current password is incorrect' });
     }
 
+    const hashedNewPassword = newPassword;
+
     await pool.request()
       .input('userId', sql.NVarChar(50), decoded.id)
-      .input('newPassword', sql.VarChar, newPassword)
-      .query('UPDATE sm19 SET sm19_12 = @newPassword WHERE unqid = @userId');
+      .input('newPassword', sql.VarChar, hashedNewPassword)
+      .query('UPDATE users SET password_hash = @newPassword WHERE user_id = @userId');
 
     return res.json({ success: true, message: 'Password changed successfully' });
 
