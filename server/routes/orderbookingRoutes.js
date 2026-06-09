@@ -219,10 +219,10 @@ router.post('/orders', protect, async (req, res) => {
 // List Orders Route
 router.get('/list', protect, async (req, res) => {
   try {
-    console.log('Fetching orders for customer:', req.user.id);
+    console.log('Fetching orders for customer:', req.user.sm19_unqid);
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .query(`
         SELECT 
           p.unqid, 
@@ -252,10 +252,10 @@ router.get('/list', protect, async (req, res) => {
 // Get Non-Placed Orders Route
 router.get('/updated', protect, async (req, res) => {
   try {
-    console.log('Fetching cancelled orders for customer:', req.user.id);
+    console.log('Fetching cancelled orders for customer:', req.user.sm19_unqid);
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .query(`
         SELECT 
           p.unqid, 
@@ -286,13 +286,13 @@ router.get('/updated', protect, async (req, res) => {
 // Seed Dummy Order Route
 router.post('/seed-dummy', protect, async (req, res) => {
   try {
-    console.log('Seeding dummy order for customer:', req.user.id);
+    console.log('Seeding dummy order for customer:', req.user.sm19_unqid);
     const pool = await poolPromise;
     const orderUnqid = uuidv4();
     
     await pool.request()
       .input('orderUnqid', sql.NVarChar(64), orderUnqid)
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .input('bookingDate', sql.DateTime, new Date())
       .input('paymentMode', sql.NVarChar(50), 'Dummy Payment')
       .query(`
@@ -317,7 +317,7 @@ router.get('/orders/:id', protect, async (req, res) => {
     // 1. Get Header
     const headerResult = await pool.request()
       .input('orderId', sql.NVarChar(64), orderId)
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .query(`SELECT unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode FROM sm1017_p WHERE unqid = @orderId AND customer_guid = @customerGuid`);
     
     if (headerResult.recordset.length === 0) {
@@ -407,7 +407,7 @@ router.put('/orders/:id', protect, async (req, res) => {
     // 1. Update Header
     const updateResult = await transaction.request()
       .input('orderId', sql.NVarChar(64), orderId)
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .input('bookingDate', sql.DateTime, parsedBookingDate)
       .input('paymentTerm', sql.NVarChar(255), paymentTerm || '')
       .input('validTill', sql.DateTime, parseDate(validTill))
@@ -502,7 +502,7 @@ router.delete('/orders/:id', protect, async (req, res) => {
     // 2. Delete parent
     const result = await transaction.request()
       .input('orderId', sql.NVarChar(64), orderId)
-      .input('customerGuid', sql.NVarChar(64), req.user.id)
+      .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .query(`DELETE FROM sm1017_p WHERE unqid = @orderId AND customer_guid = @customerGuid`);
 
     if (result.rowsAffected[0] === 0) {
