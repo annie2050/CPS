@@ -18,4 +18,22 @@ router.put('/update', protect, async (req, res) => {
   }
 })
 
+router.put('/update-password', protect, async (req, res) => {
+  try {
+    const { id, password } = req.body
+    if (!id || !password) return res.status(400).json({ success: false, message: 'User id and password required' })
+    
+    const pool = await connectDB()
+    await pool.request()
+      .input('id', sql.Int, id)
+      .input('password', sql.VarChar, password)
+      .query('UPDATE users SET password_hash = @password WHERE id = @id')
+      
+    return res.json({ success: true, message: 'Password updated successfully' })
+  } catch (err) {
+    console.error('Password update error:', err)
+    return res.status(500).json({ success: false, message: 'Failed to update password' })
+  }
+})
+
 module.exports = router
