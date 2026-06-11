@@ -45,9 +45,13 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRANSACTION;
     BEGIN TRY
+        -- Calculate the next Order Number
+        DECLARE @NextOrderNo NUMERIC(18,0);
+        SELECT @NextOrderNo = ISNULL(MAX(order_no), 0) + 1 FROM sm1017_p;
+
         -- Insert Order Header
-        INSERT INTO sm1017_p (unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode)
-        SELECT unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode
+        INSERT INTO sm1017_p (unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode, order_no)
+        SELECT unqid, customer_guid, booking_date, payment_term, valid_till, branch_guid, payment_mode, @NextOrderNo
         FROM @OrderHeader;
 
         -- Insert Order Items
