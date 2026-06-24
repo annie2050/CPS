@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchWithAuth } from '../authService'
 import './OrderBooking.css'
@@ -12,6 +12,7 @@ function OrderBooking() {
   const isReorder = queryParams.get('reorder') === 'true'
   const isEditMode = !!orderId && !isReorder
   const today = new Date().toISOString().split('T')[0]
+  const messageRef = useRef(null)
 
   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem('user')
@@ -76,8 +77,6 @@ function OrderBooking() {
     fetchOrderDetails()
   }, [orderId, isReorder])
   
-  // ... (inside the component)
-
   const [formData, setFormData] = useState({
     bookingDate: today,
     productGuid: '',
@@ -217,14 +216,16 @@ function OrderBooking() {
     if (validGridData.length === 0) {
       setMessage({ type: 'error', text: 'Please add at least one delivery schedule.' })
       setSaving(false)
+      setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       return
     }
 
     const totalGridQty = validGridData.reduce((sum, row) => sum + Number(row.qty), 0)
     const mainQty = Number(formData.qty)
     if (totalGridQty !== mainQty) {
-      setMessage({ type: 'error', text: `Total quantity in delivery schedule (${totalGridQty}) must equal the order quantity (${mainQty}).` })
+      setMessage({ type: 'error', text: 'Total quantity in delivery schedule (' + totalGridQty + ') must equal the order quantity (' + mainQty + ').' })
       setSaving(false)
+      setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       return
     }
 
@@ -237,7 +238,7 @@ function OrderBooking() {
       const bookingDateObj = new Date(formData.bookingDate);
       const validTill = new Date(formData.validTillDate).toISOString();
 
-      const res = await fetchWithAuth(isEditMode ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders', {
+      const res = await fetchWithAuth(isEditMode ? '/api/orderbooking/orders/' + orderId : '/api/orderbooking/orders', {
         method: isEditMode ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +272,6 @@ function OrderBooking() {
       }
 
       setMessage({ type: 'success', text: isEditMode ? 'Order updated successfully!' : 'Order created successfully!' })
-      window.scrollTo(0, 0)
       
       if (!isEditMode) {
         setFormData({
@@ -290,12 +290,12 @@ function OrderBooking() {
         setUnits([])
         setRate(0)
       } else {
-        // In edit mode, we might want to navigate away or just keep the data
         setTimeout(() => navigate('/view-orders'), 2000)
       }
+      setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
-      window.scrollTo(0, 0)
+      setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } finally {
       setSaving(false)
     }
@@ -323,204 +323,206 @@ function OrderBooking() {
            <h1>{isEditMode ? 'Edit Order' : 'Place a New Order'}</h1>
          </div>
 
-         {message.text && (
-          <div className={`order-form-message ${message.type}`}>
-            {message.text}
-          </div>
-        )}
+         <form className="order-form" onSubmit={handleSubmit}>
+           <div className="form-section">
+             <h3 className="form-section-title">Order Details</h3>
+             <div className="form-row">
+               <div className="form-group">
+                 <label htmlFor="bookingDate">Booking Date</label>
+                 <input
+                   type="date"
+                   id="bookingDate"
+                   name="bookingDate"
+                   value={formData.bookingDate}
+                   onChange={handleChange}
+                   min={today}
+                   max={today}
+                   required
+                 />
+               </div>
 
-        <form className="order-form" onSubmit={handleSubmit}>
-          <div className="form-section">
-            <h3 className="form-section-title">Order Details</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="bookingDate">Booking Date</label>
-                <input
-                  type="date"
-                  id="bookingDate"
-                  name="bookingDate"
-                  value={formData.bookingDate}
-                  onChange={handleChange}
-                  min={today}
-                  max={today}
-                  required
-                />
-              </div>
+               <div className="form-group">
+                 <label htmlFor="productGuid">Product *</label>
+                 <select
+                   id="productGuid"
+                   name="productGuid"
+                   value={formData.productGuid}
+                   onChange={handleChange}
+                   required
+                 >
+                   <option value="">Select</option>
+                   {products.map((p) => (
+                     <option key={p.unqid} value={p.unqid}>{p.ProductN}</option>
+                   ))}
+                 </select>
+               </div>
 
-              <div className="form-group">
-                <label htmlFor="productGuid">Product *</label>
-                <select
-                  id="productGuid"
-                  name="productGuid"
-                  value={formData.productGuid}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select</option>
-                  {products.map((p) => (
-                    <option key={p.unqid} value={p.unqid}>{p.ProductN}</option>
-                  ))}
-                </select>
-              </div>
+               <div className="form-group">
+                 <label htmlFor="unitGuid">Unit</label>
+                 <select
+                   id="unitGuid"
+                   name="unitGuid"
+                   value={formData.unitGuid}
+                   onChange={handleChange}
+                   disabled={!formData.productGuid}
+                 >
+                   <option value="">Select</option>
+                   {units.map((u) => (
+                     <option key={u.unqid} value={u.unqid}>{u.unitN}</option>
+                   ))}
+                 </select>
+               </div>
 
-              <div className="form-group">
-                <label htmlFor="unitGuid">Unit</label>
-                <select
-                  id="unitGuid"
-                  name="unitGuid"
-                  value={formData.unitGuid}
-                  onChange={handleChange}
-                  disabled={!formData.productGuid}
-                >
-                  <option value="">Select</option>
-                  {units.map((u) => (
-                    <option key={u.unqid} value={u.unqid}>{u.unitN}</option>
-                  ))}
-                </select>
-              </div>
+               <div className="form-group">
+                 <label htmlFor="qty">Quantity *</label>
+                 <input
+                   type="number"
+                   id="qty"
+                   name="qty"
+                   value={formData.qty}
+                   onChange={handleChange}
+                   placeholder="Qty"
+                   required
+                 />
+               </div>
 
-              <div className="form-group">
-                <label htmlFor="qty">Quantity *</label>
-                <input
-                  type="number"
-                  id="qty"
-                  name="qty"
-                  value={formData.qty}
-                  onChange={handleChange}
-                  placeholder="Qty"
-                  required
-                />
-              </div>
+               <div className="form-group">
+                 <label htmlFor="modeOfPayment">Mode *</label>
+                 <select
+                   id="modeOfPayment"
+                   name="modeOfPayment"
+                   value={formData.modeOfPayment}
+                   onChange={handleChange}
+                   required
+                 >
+                   <option value="">Select</option>
+                   <option value="Cash">Cash</option>
+                   <option value="Credit">Credit</option>
+                 </select>
+               </div>
 
-              <div className="form-group">
-                <label htmlFor="modeOfPayment">Mode *</label>
-                <select
-                  id="modeOfPayment"
-                  name="modeOfPayment"
-                  value={formData.modeOfPayment}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Credit">Credit</option>
-                </select>
-              </div>
+               <div className="form-group">
+                 <label htmlFor="paymentDays">Payment Days *</label>
+                 <select
+                   id="paymentDays"
+                   name="paymentDays"
+                   value={formData.paymentDays}
+                   onChange={handleChange}
+                   disabled={formData.modeOfPayment === 'Cash'}
+                   required
+                 >
+                   <option value="">Select</option>
+                   <option value="Immediate">Immediate</option>
+                   <option value="Net 7 Days">Net 7 Days</option>
+                   <option value="Net 15 Days">Net 15 Days</option>
+                   <option value="Net 30 Days">Net 30 Days</option>
+                   <option value="Net 45 Days">Net 45 Days</option>
+                   <option value="Net 60 Days">Net 60 Days</option>
+                 </select>
+               </div>
 
-              <div className="form-group">
-                <label htmlFor="paymentDays">Payment Days *</label>
-                <select
-                  id="paymentDays"
-                  name="paymentDays"
-                  value={formData.paymentDays}
-                  onChange={handleChange}
-                  disabled={formData.modeOfPayment === 'Cash'}
-                  required
-                >
-                  <option value="">Select</option>
-                  <option value="Immediate">Immediate</option>
-                  <option value="Net 7 Days">Net 7 Days</option>
-                  <option value="Net 15 Days">Net 15 Days</option>
-                  <option value="Net 30 Days">Net 30 Days</option>
-                  <option value="Net 45 Days">Net 45 Days</option>
-                  <option value="Net 60 Days">Net 60 Days</option>
-                </select>
-              </div>
+               <div className="form-group">
+                 <label htmlFor="validTillDate">Valid Till</label>
+                 <input
+                   type="date"
+                   id="validTillDate"
+                   name="validTillDate"
+                   value={formData.validTillDate}
+                   onChange={handleChange}
+                   min={formData.bookingDate}
+                 />
+               </div>
+             </div>
 
-              <div className="form-group">
-                <label htmlFor="validTillDate">Valid Till</label>
-                <input
-                  type="date"
-                  id="validTillDate"
-                  name="validTillDate"
-                  value={formData.validTillDate}
-                  onChange={handleChange}
-                  min={formData.bookingDate}
-                />
-              </div>
-            </div>
+             <div className="form-row-inline">
+               <div className="form-group">
+                 <label htmlFor="rateDisplay">Rate</label>
+                 <input
+                   type="number"
+                   id="rateDisplay"
+                   value={rate}
+                   step="0.01"
+                   readOnly
+                   disabled
+                 />
+               </div>
 
-            <div className="form-row-inline">
-              <div className="form-group">
-                <label htmlFor="rateDisplay">Rate</label>
-                <input
-                  type="number"
-                  id="rateDisplay"
-                  value={rate}
-                  step="0.01"
-                  readOnly
-                  disabled
-                />
-              </div>
+               <div className="form-group">
+                 <label htmlFor="requestRate">Request Rate</label>
+                 <input
+                   type="number"
+                   id="requestRate"
+                   name="requestRate"
+                   value={localRequestRate}
+                   onChange={(e) => {
+                     setLocalRequestRate(e.target.value)
+                     setFormData(prev => ({ ...prev, requestRate: e.target.value }))
+                   }}
+                   placeholder="Enter request rate"
+                 />
+               </div>
+             </div>
+           </div>
 
-              <div className="form-group">
-                <label htmlFor="requestRate">Request Rate</label>
-                <input
-                  type="number"
-                  id="requestRate"
-                  name="requestRate"
-                  value={localRequestRate}
-                  onChange={(e) => {
-                    setLocalRequestRate(e.target.value)
-                    setFormData(prev => ({ ...prev, requestRate: e.target.value }))
-                  }}
-                  placeholder="Enter request rate"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3 className="form-section-title">Delivery Schedule</h3>
-            <div className="delivery-grid">
-              <div className="delivery-header">
-                <span>Expected Delivery Date</span>
-                <span>Quantity</span>
-                <span>Request Rate</span>
-                <span>Action</span>
-              </div>
-              {gridData.map((row, index) => (
-                <div key={index} className="delivery-row">
-                  <input
-                    type="date"
-                    value={row.date}
-                    onChange={(e) => handleGridChange(index, 'date', e.target.value)}
-                    min={formData.bookingDate}
-                    required
-                  />
-                  <input
-                    type="number"
-                    value={row.qty}
-                    onChange={(e) => handleGridChange(index, 'qty', e.target.value)}
-                    placeholder="Qty"
-                    required
-                  />
-                  <input
-                    type="number"
-                    value={row.requestRate || ''}
-                    onChange={(e) => handleGridChange(index, 'requestRate', e.target.value)}
-                    placeholder="Req Rate"
-                    step="0.01"
-                  />
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => deleteRow(index)}
-                    disabled={gridData.length === 1}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-              <button type="button" className="add-row-btn" onClick={addRow}>
-                + Add Row
-              </button>
-            </div>
-          </div>
+           <div className="form-section">
+             <h3 className="form-section-title">Delivery Schedule</h3>
+             <div className="delivery-grid">
+               <div className="delivery-header">
+                 <span>Expected Delivery Date</span>
+                 <span>Quantity</span>
+                 <span>Request Rate</span>
+                 <span>Action</span>
+               </div>
+               {gridData.map((row, index) => (
+                 <div key={index} className="delivery-row">
+                   <input
+                     type="date"
+                     value={row.date}
+                     onChange={(e) => handleGridChange(index, 'date', e.target.value)}
+                     min={formData.bookingDate}
+                     required
+                   />
+                   <input
+                     type="number"
+                     value={row.qty}
+                     onChange={(e) => handleGridChange(index, 'qty', e.target.value)}
+                     placeholder="Qty"
+                     required
+                   />
+                   <input
+                     type="number"
+                     value={row.requestRate || ''}
+                     onChange={(e) => handleGridChange(index, 'requestRate', e.target.value)}
+                     placeholder="Req Rate"
+                     step="0.01"
+                   />
+                   <button
+                     type="button"
+                     className="delete-btn"
+                     onClick={() => deleteRow(index)}
+                     disabled={gridData.length === 1}
+                   >
+                     Delete
+                   </button>
+                 </div>
+               ))}
+               <button type="button" className="add-row-btn" onClick={addRow}>
+                 + Add Row
+               </button>
+             </div>
+           </div>
 
            <button type="submit" className="order-form-submit" disabled={saving}>
              {saving ? 'Saving...' : (isEditMode ? 'Update Order' : 'Save Order')}
            </button>
+           
+           <div ref={messageRef}>
+             {message.text && (
+              <div className={`order-form-message ${message.type}`}>
+                {message.text}
+              </div>
+            )}
+           </div>
          </form>
          <Footer />
        </div>

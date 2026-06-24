@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,8 +21,11 @@ const orderSchema = z.object({
 function NewOrder() {
   const [customerGuid, setCustomerGuid] = useState(null)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [lists, setLists] = useState({ products: [], branches: [], units: [] })
+  const messageRef = useRef(null)
+  
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast } = useToast()
@@ -30,7 +33,7 @@ function NewOrder() {
   const queryParams = new URLSearchParams(location.search);
   const orderId = queryParams.get('orderId');
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       bookingDate: new Date().toISOString().slice(0,10),
@@ -112,6 +115,7 @@ function NewOrder() {
 
   const onSubmit = async (data) => {
     setError('')
+    setSuccess('')
     setLoading(true)
     try {
       const payload = {
@@ -129,15 +133,23 @@ function NewOrder() {
       })
       const resData = await res.json()
       if (!res.ok || !resData?.success) {
-        setError(resData?.message || (orderId ? 'Failed to update order' : 'Failed to create order'))
-        showToast(resData?.message || 'Error saving order', 'error')
+        const errorMsg = resData?.message || (orderId ? 'Failed to update order' : 'Failed to create order');
+        setError(errorMsg)
+        showToast(errorMsg, 'error')
+        setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       } else {
-        showToast(orderId ? 'Order updated' : 'Order created')
-        navigate('/dashboard', { replace: true })
+        const successMsg = orderId ? 'Order updated successfully' : 'Order created successfully'
+        setSuccess(successMsg)
+        showToast(successMsg)
+        setTimeout(() => {
+            navigate('/dashboard', { replace: true })
+        }, 1500)
       }
     } catch (err) {
-      setError((orderId ? 'Failed to update order: ' : 'Failed to create order: ') + (err?.message || 'Unknown error'))
+      const errorMsg = (orderId ? 'Failed to update order: ' : 'Failed to create order: ') + (err?.message || 'Unknown error');
+      setError(errorMsg)
       showToast('Error saving order', 'error')
+      setTimeout(() => messageRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } finally {
       setLoading(false)
     }
@@ -172,13 +184,16 @@ function NewOrder() {
           <input id="qty" type="number" {...register('qty')} aria-invalid={!!errors.qty} />
           {errors.qty && <p className="error-msg">{errors.qty.message}</p>}
         </div>
-        {/* ... (repeat for other fields with {...register('field')} and errors.field) */}
-        {error && <div className="error">{error}</div>}
+        
         <button type="submit" disabled={loading}>{loading ? 'Processing...' : (orderId ? 'Update Order' : 'Create Order')}</button>
+        
+        <div ref={messageRef}>
+            {error && <div className="error">{error}</div>}
+            {success && <div className="success">{success}</div>}
+        </div>
       </form>
     </div>
   )
 }
 
 export default NewOrder
-

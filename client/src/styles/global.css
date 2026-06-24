@@ -29,3 +29,21 @@ a:hover {
   right: 16px;
   z-index: 9999;
 }
+
+.error {
+  padding: 12px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid var(--color-error);
+}
+
+.success {
+  padding: 12px;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid var(--color-success);
+}
