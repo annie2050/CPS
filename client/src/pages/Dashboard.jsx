@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logout as logoutRequest } from '../authService'
 import './Dashboard.css'
-import Toast from '../components/Toast'
+import { useToast } from '../context/ToastContext'
 import Sidebar from '../components/Sidebar'
 import Footer from '../components/Footer'
 import OrderBookingDashboard from '../components/OrderBookingDashboard'
@@ -13,8 +13,8 @@ function Dashboard({ onLogout }) {
     return userData ? JSON.parse(userData) : null
   })
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [showToast, setShowToast] = useState(false)
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -28,10 +28,10 @@ function Dashboard({ onLogout }) {
     const tokenExists = !!localStorage.getItem('token')
     const toastShown = localStorage.getItem('toastShown')
     if (tokenExists && !toastShown) {
-      setShowToast(true)
+      showToast("Logged in")
       localStorage.setItem('toastShown', 'true')
     }
-  }, [])
+  }, [showToast])
 
   const confirmLogout = async () => {
     try {
@@ -105,9 +105,6 @@ function Dashboard({ onLogout }) {
 
         <OrderBookingDashboard customerGuid={user?.sm19_unqid} />
       </main>
-      {showToast && (
-        <Toast message="Logged in" duration={2500} onClose={() => setShowToast(false)} />
-      )}
       <Footer />
     </div>
   )

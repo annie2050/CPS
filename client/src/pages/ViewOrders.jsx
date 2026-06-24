@@ -4,7 +4,22 @@ import { fetchWithAuth } from '../authService';
 import './ViewOrders.css';
 
 function ViewOrders() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [orders, setOrders] = useState([]);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const filteredOrders = orders.filter(order => 
+    (order.productName || order.products || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -39,6 +54,10 @@ function ViewOrders() {
 
   const updateOrder = async (id) => {
     navigate(`/orderbooking?orderId=${id}`);
+  };
+
+  const reorderOrder = async (id) => {
+    navigate(`/orderbooking?orderId=${id}&reorder=true`);
   };
 
   const deleteOrder = async (id) => {
@@ -80,6 +99,14 @@ const getStatusBadge = (order) => {
       </div>
       
       <div className="dashboard-content">
+        <div className="search-bar">
+            <input 
+              type="text" 
+              placeholder="Search by product..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
         {loading ? (
           <div className="loading-state">Loading...</div>
         ) : error ? (
@@ -100,7 +127,7 @@ const getStatusBadge = (order) => {
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
+            {filteredOrders.map(order => (
               <tr key={order.unqid}>
                 <td>{order.productName || order.products}</td>
                 <td>{order.total_qty}</td>
@@ -108,10 +135,12 @@ const getStatusBadge = (order) => {
                 <td>{order.payment_mode}</td>
                 <td>{getStatusBadge(order)}</td>
                  <td className="actions-cell">
-                     <div className="actions-wrapper">
-                         <button className="action-btn edit" onClick={() => updateOrder(order.unqid)}>Edit</button>
-                         <button className="action-btn delete" onClick={() => deleteOrder(order.unqid)}>Delete</button>
-                     </div>
+                      <div className="actions-wrapper">
+                          <button className="action-btn edit" onClick={() => updateOrder(order.unqid)}>Edit</button>
+                          <button className="action-btn reorder" onClick={() => reorderOrder(order.unqid)}>Reorder</button>
+                          <button className="action-btn delete" onClick={() => deleteOrder(order.unqid)}>Delete</button>
+                      </div>
+
                  </td>
               </tr>
             ))}

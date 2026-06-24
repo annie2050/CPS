@@ -9,65 +9,56 @@ function OrderBooking() {
   const location = useLocation()
   const queryParams = new URLSearchParams(location.search)
   const orderId = queryParams.get('orderId')
-  const isEditMode = !!orderId
+  const isReorder = queryParams.get('reorder') === 'true'
+  const isEditMode = !!orderId && !isReorder
   const today = new Date().toISOString().split('T')[0]
 
   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem('user')
     return userData ? JSON.parse(userData) : null
   })
+  
+  const customerGuid = user?.sm19_unqid;
+  
   const [products, setProducts] = useState([])
   const [branches, setBranches] = useState([])
-  const [manufacturers, setManufacturers] = useState([])
-  const [categories, setCategories] = useState([])
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [baseRate, setBaseRate] = useState(0)
   const [rate, setRate] = useState(0)
   const [loadingDropdowns, setLoadingDropdowns] = useState(false)
   const [localRequestRate, setLocalRequestRate] = useState('')
   const navigate = useNavigate()
-
+  
   useEffect(() => {
     async function fetchOrderDetails() {
-      if (!isEditMode) return
+      if (!orderId) return
       setLoading(true)
       try {
         const res = await fetchWithAuth(`/api/orderbooking/orders/${orderId}`)
         const data = await res.json()
         if (data.success && data.order) {
           const order = data.order
-          
-          let validTillDays = '';
-          if (order.validTill && order.bookingDate) {
-            const vt = new Date(order.validTill);
-            const bd = new Date(order.bookingDate);
-            const diffTime = Math.abs(vt - bd);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            validTillDays = diffDays.toString();
-          }
-
           setFormData(prev => ({
             ...prev,
-            bookingDate: order.bookingDate ? new Date(order.bookingDate).toISOString().split('T')[0] : today,
+            bookingDate: isReorder ? today : (order.bookingDate ? new Date(order.bookingDate).toISOString().split('T')[0] : today),
             productGuid: order.productGuid || '',
-            manuGuid: order.manuGuid || '',
-            categoryGuid: order.categoryGuid || '',
             unitGuid: order.unitGuid || '',
-            branchGuid: order.branchGuid || '',
             modeOfPayment: order.modeOfPayment || '',
-            paymentTerm: order.paymentTerm || '',
+            paymentDays: order.paymentTerm || '',
             qty: order.qty || '',
             rate: order.rate || '',
             requestRate: order.requestRate ?? '',
-            validTillDays: validTillDays
+            validTillDate: isReorder ? new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0] : (order.validTill ? new Date(order.validTill).toISOString().split('T')[0] : '')
           }))
+          setBaseRate(order.rate || 0)
           setRate(order.rate || 0)
           setLocalRequestRate(order.requestRate ?? '')
           if (order.items && order.items.length > 0) {
             setGridData(order.items.map(item => ({
-              date: item.deliveryDate ? new Date(item.deliveryDate).toISOString().split('T')[0] : '',
+              date: isReorder ? today : (item.deliveryDate ? new Date(item.deliveryDate).toISOString().split('T')[0] : ''),
               qty: item.qty || '',
               requestRate: item.requestRate ?? item.request_rate ?? null
             })))
@@ -83,62 +74,93 @@ function OrderBooking() {
       }
     }
     fetchOrderDetails()
-  }, [isEditMode, orderId])
-
-  const customerGuid = user?.sm19_unqid || (() => {
-    const userData = localStorage.getItem('user')
-    return userData ? JSON.parse(userData)?.sm19_unqid : null
-  })()
+  }, [orderId, isReorder])
+  
+  // ... (inside the component)
 
   const [formData, setFormData] = useState({
     bookingDate: today,
     productGuid: '',
-    manuGuid: '',
-    categoryGuid: '',
     unitGuid: '',
-    branchGuid: '',
     rate: '',
     requestRate: '',
     modeOfPayment: '',
-    paymentTerm: '',
-    validTillDays: '',
+    paymentDays: '',
+    validTillDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
     qty: '',
   })
+
 
   const [gridData, setGridData] = useState([
     { date: '', qty: '', requestRate: '' }
   ])
 
   useEffect(() => {
-    if (formData.requestRate !== undefined) {
-      setLocalRequestRate(formData.requestRate)
+    if (formData.modeOfPayment === 'Cash') {
+      setFormData(prev => ({ ...prev, paymentDays: 'Net 7 Days' }))
     }
-  }, [formData.requestRate])
+  }, [formData.modeOfPayment])
+
+  useEffect(() => {
+    const parseDays = (daysStr) => {
+      if (daysStr === 'Immediate') return 0
+      const match = daysStr.match(/(\d+)/)
+      return match ? parseInt(match[1], 10) : 0
+    }
+
+    if (baseRate > 0 && formData.paymentDays) {
+      const days = parseDays(formData.paymentDays)
+      const interest = baseRate * 0.18 * (days / 365)
+      setRate(parseFloat((baseRate + interest).toFixed(2)))
+    } else {
+      setRate(baseRate)
+    }
+  }, [baseRate, formData.paymentDays])
+
+  useEffect(() => {
+    async function fetchRate() {
+      if (!formData.productGuid || !formData.modeOfPayment || branches.length === 0) {
+        setBaseRate(0)
+        return
+      }
+      const branchGuid = branches[0].unqid;
+      try {
+        const res = await fetchWithAuth(
+          `/api/dashboard/rate?productGuid=${formData.productGuid}&branchGuid=${branchGuid}&mode=${formData.modeOfPayment}`
+        )
+        const data = await res.json()
+        if (data.success) {
+          setBaseRate(data.rate || 0)
+        }
+      } catch (err) {
+        console.error('Failed to fetch rate:', err)
+      }
+    }
+    fetchRate()
+  }, [formData.productGuid, formData.modeOfPayment, branches])
 
   useEffect(() => {
     async function fetchInitialData() {
       try {
-        const [productsRes, branchesRes] = await Promise.all([
+        const [productsRes, branchesRes, unitsRes] = await Promise.all([
           fetchWithAuth('/api/dashboard/products'),
           fetchWithAuth(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`),
+          fetchWithAuth('/api/dashboard/units')
         ])
         const productsData = await productsRes.json()
         const branchesData = await branchesRes.json()
+        const unitsData = await unitsRes.json()
+        
         if (productsData.success) setProducts(productsData.products)
-        // Normalize branches to the shape used by the UI: { unqid, BranchN }
-        let mappedBranches = []
-        if (branchesData?.branches && Array.isArray(branchesData.branches)) {
-          mappedBranches = branchesData.branches.map((b) => ({ 
-            unqid: b.unqid ?? b.UNQID ?? b.UNQID2 ?? b.UNQ, 
-            BranchN: b.BranchN ?? b.Branch ?? b.BRANCH ?? b.branch ?? b.Dname
-          }))
-        } else if (Array.isArray(branchesData)) {
-          mappedBranches = branchesData.map((b) => ({ 
-            unqid: b.unqid ?? b.UNQID, 
-            BranchN: b.BranchN ?? b.Branch ?? b.Dname ?? '' 
-          }))
+        if (unitsData.success) setUnits(unitsData.units)
+        
+        if (branchesData.success) {
+           const mappedBranches = branchesData.branches.map((b) => ({ 
+             unqid: b.unqid ?? b.UNQID ?? b.UNQID2 ?? b.UNQ, 
+             BranchN: b.BranchN ?? b.Branch ?? b.BRANCH ?? b.branch ?? b.Dname
+           }))
+           setBranches(mappedBranches)
         }
-        if (Array.isArray(mappedBranches)) setBranches(mappedBranches)
       } catch (err) {
         console.error('Failed to fetch initial data:', err)
       } finally {
@@ -151,67 +173,6 @@ function OrderBooking() {
   }, [customerGuid])
 
 
-  useEffect(() => {
-    async function fetchProductDetails() {
-      if (!formData.productGuid) {
-        setManufacturers([])
-        setCategories([])
-        setUnits([])
-        setRate(0)
-        return
-      }
-
-      setLoadingDropdowns(true)
-      try {
-        const res = await fetchWithAuth(
-          `/api/dashboard/product-details?productGuid=${formData.productGuid}`
-        )
-        const data = await res.json()
-        if (data.success) {
-          setManufacturers(data.manufacturers || [])
-          setCategories(data.categories || [])
-          setUnits(data.units || [])
-          
-          if (data.manufacturers.length === 1) {
-            setFormData(prev => ({ ...prev, manuGuid: data.manufacturers[0].unqid }))
-          }
-          if (data.categories.length === 1) {
-            setFormData(prev => ({ ...prev, categoryGuid: data.categories[0].unqid }))
-          }
-          if (data.units.length === 1) {
-            setFormData(prev => ({ ...prev, unitGuid: data.units[0].unitGuid }))
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch product details:', err)
-      } finally {
-        setLoadingDropdowns(false)
-      }
-    }
-    fetchProductDetails()
-  }, [formData.productGuid])
-
-  useEffect(() => {
-    async function fetchRate() {
-      if (!formData.productGuid || !formData.branchGuid || !formData.modeOfPayment) {
-        setRate(0)
-        return
-      }
-      if (isEditMode) return
-      try {
-        const res = await fetchWithAuth(
-          `/api/dashboard/rate?productGuid=${formData.productGuid}&branchGuid=${formData.branchGuid}&mode=${formData.modeOfPayment}`
-        )
-        const data = await res.json()
-        if (data.success) {
-          setRate(data.rate || 0)
-        }
-      } catch (err) {
-        console.error('Failed to fetch rate:', err)
-      }
-    }
-    fetchRate()
-  }, [formData.productGuid, formData.branchGuid, formData.modeOfPayment, isEditMode])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -229,8 +190,17 @@ function OrderBooking() {
   }
 
   const addRow = () => {
-    setGridData([...gridData, { date: '', qty: '', requestRate: '' }])
+    setGridData([...gridData, { date: '', qty: '', requestRate: formData.requestRate || '' }])
   }
+
+  useEffect(() => {
+    setGridData(prevGrid => prevGrid.map(row => {
+      if (row.requestRate === '' || row.requestRate === null || row.requestRate === undefined) {
+        return { ...row, requestRate: formData.requestRate || '' };
+      }
+      return row;
+    }))
+  }, [formData.requestRate])
 
   const deleteRow = (index) => {
     if (gridData.length > 1) {
@@ -265,13 +235,7 @@ function OrderBooking() {
       const token = localStorage.getItem('token')
       
       const bookingDateObj = new Date(formData.bookingDate);
-      let validTillDate = new Date(bookingDateObj);
-      if (formData.validTillDays) {
-        validTillDate.setDate(bookingDateObj.getDate() + parseInt(formData.validTillDays));
-      } else {
-        validTillDate.setDate(bookingDateObj.getDate() + 30);
-      }
-      const validTill = validTillDate.toISOString();
+      const validTill = new Date(formData.validTillDate).toISOString();
 
       const res = await fetchWithAuth(isEditMode ? `/api/orderbooking/orders/${orderId}` : '/api/orderbooking/orders', {
         method: isEditMode ? 'PUT' : 'POST',
@@ -281,13 +245,11 @@ function OrderBooking() {
         body: JSON.stringify({
           customerGuid: customerGuid,
           productGuid: formData.productGuid,
-          manuGuid: formData.manuGuid,
-          categoryGuid: formData.categoryGuid,
           unitGuid: formData.unitGuid,
           rate: Number(rate),
           requestRate: formData.requestRate ? Number(formData.requestRate) : null,
           qty: Number(formData.qty),
-          paymentTerm: formData.paymentTerm,
+          paymentDays: formData.paymentDays,
           bookingDate: formData.bookingDate,
           validTill: validTill,
           items: validGridData.map(item => ({
@@ -296,7 +258,9 @@ function OrderBooking() {
             requestRate: Number(item.requestRate) || null
           })),
           modeOfPayment: formData.modeOfPayment,
-          branchGuid: formData.branchGuid
+          branchGuid: branches.length > 0 ? branches[0].unqid : 'default',
+          manuGuid: '00000000-0000-0000-0000-000000000000',
+          categoryGuid: '00000000-0000-0000-0000-000000000000'
         }),
       })
 
@@ -313,21 +277,16 @@ function OrderBooking() {
         setFormData({
           bookingDate: today,
           productGuid: '',
-          manuGuid: '',
-          categoryGuid: '',
           unitGuid: '',
-          branchGuid: '',
           rate: '',
           requestRate: '',
           modeOfPayment: '',
-          paymentTerm: '',
-          validTillDays: '',
+          paymentDays: '',
+          validTillDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           qty: '',
         })
         setLocalRequestRate('')
         setGridData([{ date: '', qty: '', requestRate: '' }])
-        setManufacturers([])
-        setCategories([])
         setUnits([])
         setRate(0)
       } else {
@@ -405,38 +364,6 @@ function OrderBooking() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="manuGuid">Manufacturer</label>
-                <select
-                  id="manuGuid"
-                  name="manuGuid"
-                  value={formData.manuGuid}
-                  onChange={handleChange}
-                  disabled={!formData.productGuid || loadingDropdowns}
-                >
-                  <option value="">Select</option>
-                  {manufacturers.map((m) => (
-                    <option key={m.unqid} value={m.unqid}>{m.ManufactureN}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="categoryGuid">Category</label>
-                <select
-                  id="categoryGuid"
-                  name="categoryGuid"
-                  value={formData.categoryGuid}
-                  onChange={handleChange}
-                  disabled={!formData.productGuid}
-                >
-                  <option value="">Select</option>
-                  {categories.map((c) => (
-                    <option key={c.unqid} value={c.unqid}>{c.CategoryN}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="unitGuid">Unit</label>
                 <select
                   id="unitGuid"
@@ -447,7 +374,7 @@ function OrderBooking() {
                 >
                   <option value="">Select</option>
                   {units.map((u) => (
-                    <option key={u.unitGuid} value={u.unitGuid}>{u.unitN}</option>
+                    <option key={u.unqid} value={u.unqid}>{u.unitN}</option>
                   ))}
                 </select>
               </div>
@@ -466,59 +393,6 @@ function OrderBooking() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="paymentTerm">Payment Term *</label>
-                <select
-                  id="paymentTerm"
-                  name="paymentTerm"
-                  value={formData.paymentTerm}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select</option>
-                  <option value="Immediate">Immediate</option>
-                  <option value="Net 7 Days">Net 7 Days</option>
-                  <option value="Net 15 Days">Net 15 Days</option>
-                  <option value="Net 30 Days">Net 30 Days</option>
-                  <option value="Net 45 Days">Net 45 Days</option>
-                  <option value="Net 60 Days">Net 60 Days</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="validTillDays">Valid Till</label>
-                <select
-                  id="validTillDays"
-                  name="validTillDays"
-                  value={formData.validTillDays}
-                  onChange={handleChange}
-                >
-                  <option value="">Select</option>
-                  <option value="7">7 Days</option>
-                  <option value="10">10 Days</option>
-                  <option value="15">15 Days</option>
-                  <option value="30">30 Days</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row-inline">
-              <div className="form-group">
-                <label htmlFor="branchGuid">Branch *</label>
-                <select
-                  id="branchGuid"
-                  name="branchGuid"
-                  value={formData.branchGuid}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select</option>
-                  {branches.map((b) => (
-                    <option key={b.unqid} value={b.unqid}>{b.BranchN}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="modeOfPayment">Mode *</label>
                 <select
                   id="modeOfPayment"
@@ -533,6 +407,40 @@ function OrderBooking() {
                 </select>
               </div>
 
+              <div className="form-group">
+                <label htmlFor="paymentDays">Payment Days *</label>
+                <select
+                  id="paymentDays"
+                  name="paymentDays"
+                  value={formData.paymentDays}
+                  onChange={handleChange}
+                  disabled={formData.modeOfPayment === 'Cash'}
+                  required
+                >
+                  <option value="">Select</option>
+                  <option value="Immediate">Immediate</option>
+                  <option value="Net 7 Days">Net 7 Days</option>
+                  <option value="Net 15 Days">Net 15 Days</option>
+                  <option value="Net 30 Days">Net 30 Days</option>
+                  <option value="Net 45 Days">Net 45 Days</option>
+                  <option value="Net 60 Days">Net 60 Days</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="validTillDate">Valid Till</label>
+                <input
+                  type="date"
+                  id="validTillDate"
+                  name="validTillDate"
+                  value={formData.validTillDate}
+                  onChange={handleChange}
+                  min={formData.bookingDate}
+                />
+              </div>
+            </div>
+
+            <div className="form-row-inline">
               <div className="form-group">
                 <label htmlFor="rateDisplay">Rate</label>
                 <input

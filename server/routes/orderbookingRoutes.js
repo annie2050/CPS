@@ -115,7 +115,7 @@ router.post('/orders', protect, async (req, res) => {
       unitGuid, 
       manuGuid,
       categoryGuid,
-      paymentTerm, 
+      paymentDays, 
       bookingDate, 
       validTill,
       branchGuid,
@@ -161,7 +161,7 @@ router.post('/orders', protect, async (req, res) => {
       orderUnqid, 
       customerGuid, 
       parsedBookingDate, 
-      paymentTerm || '', 
+      paymentDays || '', 
       parsedValidTill, 
       branchGuid, 
       modeOfPayment || ''
@@ -385,7 +385,7 @@ router.put('/orders/:id', protect, async (req, res) => {
       unitGuid, 
       manuGuid,
       categoryGuid,
-      paymentTerm, 
+      paymentDays, 
       bookingDate, 
       validTill,
       branchGuid,
@@ -409,7 +409,7 @@ router.put('/orders/:id', protect, async (req, res) => {
       .input('orderId', sql.NVarChar(64), orderId)
       .input('customerGuid', sql.NVarChar(64), req.user.sm19_unqid)
       .input('bookingDate', sql.DateTime, parsedBookingDate)
-      .input('paymentTerm', sql.NVarChar(255), paymentTerm || '')
+      .input('paymentDays', sql.NVarChar(255), paymentDays || '')
       .input('validTill', sql.DateTime, parseDate(validTill))
       .input('branchGuid', sql.NVarChar(64), branchGuid)
       .input('paymentMode', sql.NVarChar(50), modeOfPayment || '')
@@ -417,7 +417,7 @@ router.put('/orders/:id', protect, async (req, res) => {
       .input('requestRate', sql.Decimal(18, 3), requestRate ? Number(requestRate) : null)
       .query(`
         UPDATE sm1017_p 
-        SET booking_date = @bookingDate, payment_term = @paymentTerm, valid_till = @validTill, 
+        SET booking_date = @bookingDate, payment_term = @paymentDays, valid_till = @validTill, 
             branch_guid = @branchGuid, payment_mode = @paymentMode, 
             rate = @rate, request_rate = @requestRate, modify_date = GETDATE()
         WHERE unqid = @orderId AND customer_guid = @customerGuid

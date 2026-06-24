@@ -1,8 +1,8 @@
 .obd-container {
-  background: white;
+  background: var(--bg-card);
   border-radius: 10px;
   padding: 24px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow);
 }
 
 .obd-loading {
@@ -11,14 +11,14 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .obd-loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -31,8 +31,8 @@
 .obd-error {
   padding: 20px;
   text-align: center;
-  color: #dc2626;
-  background: #fee2e2;
+  color: var(--color-error);
+  background: var(--color-error-bg);
   border-radius: 8px;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .obd-summary-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 20px;
   border-radius: 10px;
@@ -71,7 +71,7 @@
 }
 
 .obd-table-title {
-  color: #333;
+  color: var(--text-primary);
   font-size: 18px;
   margin-bottom: 16px;
 }
@@ -79,7 +79,7 @@
 .obd-empty {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .obd-table {
@@ -91,23 +91,28 @@
 .obd-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .obd-table th {
-  background: #f8f9fa;
-  color: #555;
+  background: var(--hover-bg);
+  color: var(--text-secondary);
   font-weight: 600;
   font-size: 14px;
 }
 
 .obd-table td {
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .obd-table tbody tr:hover {
-  background: #f9f9f9;
+  background: var(--hover-bg);
+}
+
+.obd-amount {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .obd-badge {
@@ -119,28 +124,74 @@
 }
 
 .obd-badge.status-delivered {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .obd-badge.status-processing {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .obd-badge.payment-paid {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .obd-badge.payment-overdue {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
-.obd-amount {
-  font-weight: 600;
-  color: #333;
+/* Responsive */
+@media (max-width: 1024px) {
+  .obd-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .obd-container {
+    padding: 16px;
+  }
+  
+  .obd-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .obd-summary-card {
+    padding: 16px;
+  }
+  
+  .obd-summary-value {
+    font-size: 24px;
+  }
+  
+  .obd-summary-currency {
+    font-size: 18px;
+  }
+  
+  .obd-table th,
+  .obd-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .obd-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .obd-summary-value {
+    font-size: 20px;
+  }
+  
+  .obd-summary-currency {
+    font-size: 16px;
+  }
 }
 
 /* Responsive */

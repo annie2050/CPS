@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -47,8 +48,9 @@ function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <Suspense fallback={<div className="loading-screen">Loading...</div>}>
-          <Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="loading-screen">Loading...</div>}>
+            <Routes>
             <Route
               path="/login"
               element={
@@ -135,8 +137,9 @@ function App() {
               path="/"
               element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
             />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </ThemeProvider>
   )
