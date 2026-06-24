@@ -5,4 +5,4 @@ To start the project:
 1. Backend: `npm run start` in `server/`
 2. Frontend: `npm run dev` in `client/`
 
-Commit and stage changes often so they act as checkpoints.
+Commit atomic changes after each logical step or passing test, using descriptive messages.
