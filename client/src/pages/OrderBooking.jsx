@@ -351,9 +351,12 @@ function OrderBooking() {
                    required
                  >
                    <option value="">Select</option>
-                   {products.map((p) => (
-                     <option key={p.unqid} value={p.unqid}>{p.ProductN}</option>
-                   ))}
+                  {products.map((p) => {
+                    const isSm206 = p.unqid === 'sm206_6' || p.unqid === 'sm206_2' || p.ProductN === 'sm206_6' || p.ProductN === 'sm206_2';
+                    const value = isSm206 ? 'sm206_2' : p.unqid;
+                    const displayName = isSm206 ? 'sm206_9' : (p.ProductN || p.unqid);
+                    return <option key={p.unqid} value={value}>{displayName}</option>
+                  })}
                  </select>
                </div>
 

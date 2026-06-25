@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
@@ -49,6 +50,18 @@ app.use((req, res, next) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve built frontend assets
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+// SPA fallback: serve index.html for non-API routes (client-side routing)
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  } else {
+    res.status(404).json({ success: false, message: 'Route not found.' });
+  }
 });
 
 // 404 handler
