@@ -146,7 +146,7 @@ router.get('/products', protect, async (req, res) => {
 
     const pool = await poolPromise;
     const result = await pool.request().query(
-      "SELECT sm206_2 AS unqid, sm206_6 AS ProductN FROM sm206 WHERE sm206_6 IS NOT NULL AND sm206_6 <> '' ORDER BY sm206_6"
+      "SELECT sm206_2 AS unqid, sm206_9 AS ProductN FROM sm206 WHERE sm206_9 IS NOT NULL AND sm206_9 <> '' ORDER BY sm206_9"
     );
     const products = result.recordset || [];
     setCache(cacheKey, products);

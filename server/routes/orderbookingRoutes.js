@@ -5,6 +5,27 @@ const { v4: uuidv4 } = require('uuid')
 
 const router = express.Router()
 
+// Get products with their associated units
+router.get('/product-units', protect, async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({ success: false, message: 'Database not connected.' })
+    }
+    const pool = await poolPromise
+    const result = await pool.request().query(`
+      SELECT sm206.sm206_2 AS productGuid, sm206.sm206_9 AS productName, sm209.sm209_7 AS unit, sm209.unqid AS unitGuid
+      FROM sm206
+      INNER JOIN sm209 ON sm209.unqid = sm206.sm206_12
+      WHERE sm206.sm206_9 IS NOT NULL AND sm206.sm206_9 <> ''
+      ORDER BY sm206.sm206_9
+    `)
+    res.json({ success: true, products: result.recordset })
+  } catch (err) {
+    console.error('Product-units error:', err)
+    res.status(500).json({ success: false, message: 'Failed to fetch products with units.' })
+  }
+})
+
 // Get product details for orderbooking (manufacturer, category, unit)
 router.get('/product-details', protect, async (req, res) => {
   try {

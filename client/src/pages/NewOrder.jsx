@@ -163,12 +163,9 @@ function NewOrder() {
           <label htmlFor="productGuid">Product</label>
           <select id="productGuid" {...register('productGuid')} aria-invalid={!!errors.productGuid}>
             <option value="">Select product</option>
-            {lists.products.map((p) => {
-              const isSm206 = p.unqid === 'sm206_6' || p.unqid === 'sm206_2' || p.ProductN === 'sm206_6' || p.ProductN === 'sm206_2';
-              const value = isSm206 ? 'sm206_2' : p.unqid;
-              const displayName = isSm206 ? 'sm206_9' : (p.ProductN || p.unqid);
-              return <option key={p.unqid} value={value}>{displayName}</option>
-            })}
+            {lists.products.map((p) => (
+              <option key={p.unqid} value={p.unqid}>{p.ProductN || p.unqid}</option>
+            ))}
           </select>
           {errors.productGuid && <p className="error-msg">{errors.productGuid.message}</p>}
         </div>

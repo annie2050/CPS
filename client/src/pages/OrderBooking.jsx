@@ -139,23 +139,40 @@ function OrderBooking() {
   }, [formData.productGuid, formData.modeOfPayment, branches])
 
   useEffect(() => {
+    if (formData.productGuid) {
+      const product = products.find(p => p.productGuid === formData.productGuid)
+      if (product) {
+        setFormData(prev => ({ ...prev, unitGuid: product.unitGuid }))
+      }
+    } else {
+      setFormData(prev => ({ ...prev, unitGuid: '' }))
+    }
+  }, [formData.productGuid, products])
+
+  useEffect(() => {
     async function fetchInitialData() {
       try {
-        const [productsRes, branchesRes, unitsRes] = await Promise.all([
-          fetchWithAuth('/api/dashboard/products'),
-          fetchWithAuth(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`),
-          fetchWithAuth('/api/dashboard/units')
+        const [productUnitsRes, branchesRes] = await Promise.all([
+          fetchWithAuth('/api/orderbooking/product-units'),
+          fetchWithAuth(`/api/dashboard/branches?customerGuid=${encodeURIComponent(customerGuid)}`)
         ])
-        const productsData = await productsRes.json()
+        const productUnitsData = await productUnitsRes.json()
         const branchesData = await branchesRes.json()
-        const unitsData = await unitsRes.json()
-        
-        if (productsData.success) setProducts(productsData.products)
-        if (unitsData.success) setUnits(unitsData.units)
-        
+
+        if (productUnitsData.success) {
+          setProducts(productUnitsData.products)
+          const derivedUnits = productUnitsData.products.reduce((acc, p) => {
+            if (p.unitGuid && !acc.find(u => u.unqid === p.unitGuid)) {
+              acc.push({ unqid: p.unitGuid, unitN: p.unit })
+            }
+            return acc
+          }, [])
+          setUnits(derivedUnits)
+        }
+
         if (branchesData.success) {
-           const mappedBranches = branchesData.branches.map((b) => ({ 
-             unqid: b.unqid ?? b.UNQID ?? b.UNQID2 ?? b.UNQ, 
+           const mappedBranches = branchesData.branches.map((b) => ({
+             unqid: b.unqid ?? b.UNQID ?? b.UNQID2 ?? b.UNQ,
              BranchN: b.BranchN ?? b.Branch ?? b.BRANCH ?? b.branch ?? b.Dname
            }))
            setBranches(mappedBranches)
@@ -229,8 +246,8 @@ function OrderBooking() {
       return
     }
 
-    const selectedProduct = products.find((p) => p.unqid === formData.productGuid)
-    const selectedUnit = units.find((u) => u.unitGuid === formData.unitGuid)
+    const selectedProduct = products.find((p) => p.productGuid === formData.productGuid)
+    const selectedUnit = units.find((u) => u.unqid === formData.unitGuid)
 
     try {
       const token = localStorage.getItem('token')
@@ -343,37 +360,34 @@ function OrderBooking() {
 
                <div className="form-group">
                  <label htmlFor="productGuid">Product *</label>
-                 <select
-                   id="productGuid"
-                   name="productGuid"
-                   value={formData.productGuid}
-                   onChange={handleChange}
-                   required
-                 >
-                   <option value="">Select</option>
-                  {products.map((p) => {
-                    const isSm206 = p.unqid === 'sm206_6' || p.unqid === 'sm206_2' || p.ProductN === 'sm206_6' || p.ProductN === 'sm206_2';
-                    const value = isSm206 ? 'sm206_2' : p.unqid;
-                    const displayName = isSm206 ? 'sm206_9' : (p.ProductN || p.unqid);
-                    return <option key={p.unqid} value={value}>{displayName}</option>
-                  })}
-                 </select>
+                  <select
+                    id="productGuid"
+                    name="productGuid"
+                    value={formData.productGuid}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select</option>
+                    {products.map((p) => (
+                      <option key={p.productGuid} value={p.productGuid}>{p.productName || p.productGuid}</option>
+                    ))}
+                  </select>
                </div>
 
                <div className="form-group">
                  <label htmlFor="unitGuid">Unit</label>
-                 <select
-                   id="unitGuid"
-                   name="unitGuid"
-                   value={formData.unitGuid}
-                   onChange={handleChange}
-                   disabled={!formData.productGuid}
-                 >
-                   <option value="">Select</option>
-                   {units.map((u) => (
-                     <option key={u.unqid} value={u.unqid}>{u.unitN}</option>
-                   ))}
-                 </select>
+                  <select
+                    id="unitGuid"
+                    name="unitGuid"
+                    value={formData.unitGuid}
+                    onChange={handleChange}
+                    disabled
+                  >
+                    <option value="">Select</option>
+                    {units.map((u) => (
+                      <option key={u.unqid} value={u.unqid}>{u.unitN}</option>
+                    ))}
+                  </select>
                </div>
 
                <div className="form-group">
