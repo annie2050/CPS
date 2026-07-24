@@ -218,3 +218,67 @@
     overflow-x: auto;
   }
 }
+
+/* Dialog styles */
+.dialog-content {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  max-width: 400px;
+  border: 1px solid var(--border-color);
+}
+
+.dialog-content [data-radix-dialog-title] {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dialog-content [data-radix-dialog-description] {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.dialog-btn.cancel {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.dialog-btn.cancel:hover {
+  background: var(--border-color);
+}
+
+.dialog-btn.confirm {
+  background: var(--color-danger);
+  color: white;
+}
+
+.dialog-btn.confirm:hover {
+  background: var(--color-danger-hover);
+}
+
+.dialog-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

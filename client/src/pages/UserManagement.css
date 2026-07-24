@@ -12,6 +12,9 @@
 }
 
 .user-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 24px;
 }
 
@@ -19,41 +22,21 @@
   color: var(--text-primary);
   font-size: 22px;
   font-weight: 600;
-  margin-bottom: 4px;
 }
 
-.user-form {
-  background: var(--bg-card);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: var(--shadow);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.user-form input, 
-.user-form select {
-  padding: 8px 10px;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  font-size: 13px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-}
-
-.user-form button {
-  padding: 8px 16px;
+.add-user-btn {
+  padding: 10px 20px;
   background-color: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
-.user-form button:hover {
+.add-user-btn:hover {
   background-color: var(--color-primary-hover);
 }
 
@@ -73,4 +56,172 @@
 
 .notification.error {
   background-color: var(--color-error);
+}
+
+.user-loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.user-table-wrapper {
+  background: var(--bg-card);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-table tbody tr:hover {
+  background-color: var(--hover-bg);
+}
+
+.user-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.user-table-empty {
+  text-align: center;
+  padding: 32px !important;
+  color: var(--text-secondary);
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: var(--color-primary-light, #e8f0fe);
+  color: var(--color-primary, #1a73e8);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.edit-btn {
+  background-color: var(--color-primary-light, #e8f0fe);
+  color: var(--color-primary, #1a73e8);
+}
+
+.edit-btn:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.delete-btn {
+  background-color: var(--color-danger-light, #fce8e6);
+  color: var(--color-danger, #d93025);
+}
+
+.delete-btn:hover:not(:disabled) {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.modal-card h2 {
+  margin: 0 0 16px;
+  color: var(--text-primary);
+  font-size: 18px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .user-page-container {
+    margin-left: 0;
+  }
+
+  .user-page-content {
+    padding: 16px;
+  }
+
+  .user-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 10px 12px;
+  }
+
+  .actions-cell {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .action-btn {
+    width: 100%;
+    text-align: center;
+  }
 }

@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const sql = require('mssql');
+const bcrypt = require('bcryptjs');
 const { connectDB } = require('../config/db');
 
 const router = express.Router();
@@ -27,7 +28,7 @@ router.post('/login', async (req, res) => {
 
     const user = result.recordset[0];
 
-    const isMatch = (password === user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -82,7 +83,7 @@ router.post('/refresh', (req, res) => {
     const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
     // Rotate refresh token as part of refresh flow
     const newRefresh = jwt.sign(
-      { id: payload.id, email: payload.email, name: payload.name, company: payload.company },
+      { id: payload.id, email: payload.email, name: payload.name, company: payload.company, sm19_unqid: payload.sm19_unqid, role: payload.role },
       JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
@@ -95,7 +96,7 @@ router.post('/refresh', (req, res) => {
     });
 
     const newAccess = jwt.sign(
-      { id: payload.id, email: payload.email, name: payload.name, company: payload.company },
+      { id: payload.id, email: payload.email, name: payload.name, company: payload.company, sm19_unqid: payload.sm19_unqid, role: payload.role },
       JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -132,13 +133,13 @@ router.put('/change-password', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const isMatch = (currentPassword === userResult.recordset[0].password);
+    const isMatch = await bcrypt.compare(currentPassword, userResult.recordset[0].password);
 
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Current password is incorrect' });
     }
 
-    const hashedNewPassword = newPassword;
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
     await pool.request()
       .input('userId', sql.NVarChar(50), decoded.id)

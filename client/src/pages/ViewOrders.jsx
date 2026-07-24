@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '../authService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@radix-ui/react-dialog';
+import { useToast } from '../context/ToastContext';
 import './ViewOrders.css';
 
 function ViewOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [orders, setOrders] = useState([]);
-  
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -16,13 +25,31 @@ function ViewOrders() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const filteredOrders = orders.filter(order => 
+  const filteredOrders = orders.filter(order =>
     (order.productName || order.products || '').toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const handleDeleteClick = (id) => {
+    setOrderToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
+    try {
+      await fetchWithAuth(`/api/orderbooking/orders/${orderToDelete}`, {
+        method: 'DELETE',
+      });
+      setOrders(prev => prev.filter(o => o.unqid !== orderToDelete));
+      showToast('Order deleted successfully', 'success');
+    } catch (err) {
+      console.error('Failed to delete order:', err);
+      showToast('Failed to delete order', 'error');
+    } finally {
+      setDeleteModalOpen(false);
+      setOrderToDelete(null);
+    }
+  };
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -60,31 +87,18 @@ function ViewOrders() {
     navigate(`/orderbooking?orderId=${id}&reorder=true`);
   };
 
-  const deleteOrder = async (id) => {
-      if (confirm("Are you sure?")) {
-          try {
-            await fetchWithAuth(`/api/orderbooking/orders/${id}`, {
-                method: 'DELETE',
-            });
-            window.location.reload();
-          } catch (err) {
-            alert('Failed to delete order');
-          }
-      }
-  };
-
-const getStatusBadge = (order) => {
+  const getStatusBadge = (order) => {
     if (order.order_status === 'cancelled') {
-      return <span className="status-badge cancelled" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Cancelled</span>;
+      return <span className="status-badge cancelled" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{ cursor: 'pointer' }}>Cancelled</span>;
     }
     if (order.order_status === 'delivered') {
-      return <span className="status-badge delivered" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Delivered</span>;
+      return <span className="status-badge delivered" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{ cursor: 'pointer' }}>Delivered</span>;
     }
     if (order.order_status === 'processed') {
-      return <span className="status-badge processed" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>Processed</span>;
+      return <span className="status-badge processed" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{ cursor: 'pointer' }}>Processed</span>;
     }
     if (order.order_status === 'new') {
-      return <span className="status-badge new" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{cursor:'pointer'}}>New</span>;
+      return <span className="status-badge new" onClick={() => navigate(`/order-status?orderId=${order.unqid}`)} style={{ cursor: 'pointer' }}>New</span>;
     }
     return <span className="status-badge">Placed</span>;
   };
@@ -97,15 +111,15 @@ const getStatusBadge = (order) => {
           <button className="back-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
         </div>
       </div>
-      
+
       <div className="dashboard-content">
         <div className="search-bar">
-            <input 
-              type="text" 
-              placeholder="Search by product..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <input
+            type="text"
+            placeholder="Search by product..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         {loading ? (
           <div className="loading-state">Loading...</div>
@@ -116,39 +130,56 @@ const getStatusBadge = (order) => {
         ) : (
           <div className="orders-card">
             <table className="orders-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Qty</th>
-              <th>Booking Date</th>
-              <th>Payment Mode</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map(order => (
-              <tr key={order.unqid}>
-                <td>{order.productName || order.products}</td>
-                <td>{order.total_qty}</td>
-                <td>{formatDate(order.booking_date)}</td>
-                <td>{order.payment_mode}</td>
-                <td>{getStatusBadge(order)}</td>
-                 <td className="actions-cell">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Booking Date</th>
+                  <th>Payment Mode</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map(order => (
+                  <tr key={order.unqid}>
+                    <td>{order.productName || order.products}</td>
+                    <td>{order.total_qty}</td>
+                    <td>{formatDate(order.booking_date)}</td>
+                    <td>{order.payment_mode}</td>
+                    <td>{getStatusBadge(order)}</td>
+                    <td className="actions-cell">
                       <div className="actions-wrapper">
-                          <button className="action-btn edit" onClick={() => updateOrder(order.unqid)}>Edit</button>
-                          <button className="action-btn reorder" onClick={() => reorderOrder(order.unqid)}>Reorder</button>
-                          <button className="action-btn delete" onClick={() => deleteOrder(order.unqid)}>Delete</button>
+                        <button className="action-btn edit" onClick={() => updateOrder(order.unqid)}>Edit</button>
+                        <button className="action-btn reorder" onClick={() => reorderOrder(order.unqid)}>Reorder</button>
+                        <button className="action-btn delete" onClick={() => handleDeleteClick(order.unqid)}>Delete</button>
                       </div>
-
-                 </td>
-              </tr>
-            ))}
-          </tbody>
-
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
+
+        <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+          <DialogContent className="dialog-content">
+            <DialogHeader>
+              <DialogTitle>Delete Order</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this order? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <button className="dialog-btn cancel">Cancel</button>
+              </DialogClose>
+              <button className="dialog-btn confirm" onClick={confirmDelete} disabled={!orderToDelete}>
+                Delete
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
