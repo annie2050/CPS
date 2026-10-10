@@ -137,17 +137,31 @@ router.get('/dashboard-data', protect, async (req, res) => {
   }
 });
 
-// Products
+// Products the logged-in customer has actually bought (SM1011 sales)
 router.get('/products', protect, async (req, res) => {
   try {
-    const cacheKey = 'dashboard_products';
+    const customerGuid = req.user?.sm19_unqid || req.query.customerGuid;
+    if (!customerGuid) {
+      return res.json({ success: true, products: [] });
+    }
+
+    const cacheKey = `dashboard_products_${customerGuid}`;
     const cachedData = getCache(cacheKey);
     if (cachedData) return res.json({ success: true, products: cachedData });
 
     const pool = await poolPromise;
-    const result = await pool.request().query(
-      "SELECT sm206_2 AS unqid, sm206_9 AS ProductN FROM sm206 WHERE sm206_9 IS NOT NULL AND sm206_9 <> '' ORDER BY sm206_9"
-    );
+    const result = await pool.request()
+      .input('customerGuid', sql.UniqueIdentifier, String(customerGuid).trim())
+      .query(`
+        SELECT DISTINCT
+          prod.sm206_2 AS unqid,
+          prod.sm206_7 AS ProductN
+        FROM SM1011 s
+        INNER JOIN sm206 prod ON prod.sm206_2 = s.sm1011_13
+        WHERE (s.sm1011_10 = @customerGuid OR s.sm1011_11 = @customerGuid)
+          AND s.sm1011_13 IS NOT NULL
+        ORDER BY prod.sm206_7
+      `);
     const products = result.recordset || [];
     setCache(cacheKey, products);
     return res.json({ success: true, products });

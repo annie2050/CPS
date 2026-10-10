@@ -5,20 +5,32 @@ const { v4: uuidv4 } = require('uuid')
 
 const router = express.Router()
 
-// Get products with their associated units
+// Products the logged-in customer has actually bought (SM1011 sales)
 router.get('/product-units', protect, async (req, res) => {
   try {
     if (!isDbConnected()) {
       return res.status(503).json({ success: false, message: 'Database not connected.' })
     }
+    const customerGuid = req.user?.sm19_unqid
+    if (!customerGuid) {
+      return res.json({ success: true, products: [] })
+    }
     const pool = await poolPromise
-    const result = await pool.request().query(`
-      SELECT sm206.sm206_2 AS productGuid, sm206.sm206_9 AS productName, sm209.sm209_7 AS unit, sm209.unqid AS unitGuid
-      FROM sm206
-      INNER JOIN sm209 ON sm209.unqid = sm206.sm206_12
-      WHERE sm206.sm206_9 IS NOT NULL AND sm206.sm206_9 <> ''
-      ORDER BY sm206.sm206_9
-    `)
+    const result = await pool.request()
+      .input('customerGuid', sql.UniqueIdentifier, String(customerGuid).trim())
+      .query(`
+        SELECT DISTINCT
+          prod.sm206_2 AS productGuid,
+          prod.sm206_7 AS productName,
+          unit.sm209_7 AS unit,
+          unit.unqid AS unitGuid
+        FROM SM1011 s
+        INNER JOIN sm206 prod ON prod.sm206_2 = s.sm1011_13
+        LEFT JOIN sm209 unit ON unit.unqid = prod.sm206_12
+        WHERE (s.sm1011_10 = @customerGuid OR s.sm1011_11 = @customerGuid)
+          AND s.sm1011_13 IS NOT NULL
+        ORDER BY prod.sm206_7
+      `)
     res.json({ success: true, products: result.recordset })
   } catch (err) {
     console.error('Product-units error:', err)
@@ -247,6 +259,7 @@ router.get('/list', protect, async (req, res) => {
       .query(`
         SELECT 
           p.unqid, 
+          pc.unqid AS itemUnqid,
           p.booking_date, 
           p.payment_mode,
           pc.order_status,
@@ -280,6 +293,7 @@ router.get('/updated', protect, async (req, res) => {
       .query(`
         SELECT 
           p.unqid, 
+          pc.unqid AS itemUnqid,
           p.booking_date, 
           p.payment_mode,
           pc.order_status,

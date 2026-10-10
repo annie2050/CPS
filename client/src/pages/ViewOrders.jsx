@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '../authService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@radix-ui/react-dialog';
 import { useToast } from '../context/ToastContext';
+import Sidebar from '../components/Sidebar';
 import './ViewOrders.css';
 
 function ViewOrders() {
@@ -65,7 +65,7 @@ function ViewOrders() {
         const res = await fetchWithAuth('/api/orderbooking/list');
         const data = await res.json();
         if (data.success) {
-          const placedOrders = data.orders.filter(o => !o.order_status || o.order_status === 'placed' || o.order_status === '' || o.order_status === 'new');
+          const placedOrders = (data.orders || []).filter(o => !o.order_status || o.order_status === 'placed' || o.order_status === '' || o.order_status === 'new');
           setOrders(placedOrders);
         } else {
           setError(data.message || 'Failed to fetch orders');
@@ -105,6 +105,7 @@ function ViewOrders() {
 
   return (
     <div className="view-orders-container">
+      <Sidebar />
       <div className="dashboard-nav">
         <h2>My Orders</h2>
         <div className="nav-user">
@@ -141,8 +142,8 @@ function ViewOrders() {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map(order => (
-                  <tr key={order.unqid}>
+                {filteredOrders.map((order, idx) => (
+                  <tr key={order.itemUnqid || `${order.unqid}-${idx}`}>
                     <td>{order.productName || order.products}</td>
                     <td>{order.total_qty}</td>
                     <td>{formatDate(order.booking_date)}</td>
@@ -162,24 +163,20 @@ function ViewOrders() {
           </div>
         )}
 
-        <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-          <DialogContent className="dialog-content">
-            <DialogHeader>
-              <DialogTitle>Delete Order</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this order? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <button className="dialog-btn cancel">Cancel</button>
-              </DialogClose>
-              <button className="dialog-btn confirm" onClick={confirmDelete} disabled={!orderToDelete}>
-                Delete
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {deleteModalOpen && (
+          <div className="modal-overlay" onClick={() => setDeleteModalOpen(false)}>
+            <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+              <h3>Delete Order</h3>
+              <p>Are you sure you want to delete this order? This action cannot be undone.</p>
+              <div className="dialog-footer">
+                <button className="dialog-btn cancel" onClick={() => setDeleteModalOpen(false)}>Cancel</button>
+                <button className="dialog-btn confirm" onClick={confirmDelete} disabled={!orderToDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

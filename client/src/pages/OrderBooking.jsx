@@ -368,6 +368,9 @@ function OrderBooking() {
                     required
                   >
                     <option value="">Select</option>
+                    {products.length === 0 && (
+                      <option value="" disabled>No products found in your sales history</option>
+                    )}
                     {products.map((p) => (
                       <option key={p.productGuid} value={p.productGuid}>{p.productName || p.productGuid}</option>
                     ))}

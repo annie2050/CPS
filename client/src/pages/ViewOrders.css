@@ -219,6 +219,19 @@
   }
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
 /* Dialog styles */
 .dialog-content {
   background: var(--bg-card);
@@ -229,14 +242,14 @@
   border: 1px solid var(--border-color);
 }
 
-.dialog-content [data-radix-dialog-title] {
+.dialog-content h3 {
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.dialog-content [data-radix-dialog-description] {
+.dialog-content p {
   margin: 0 0 24px;
   font-size: 14px;
   color: var(--text-secondary);
