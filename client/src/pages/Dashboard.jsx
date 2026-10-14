@@ -91,6 +91,10 @@ function Dashboard({ onLogout }) {
                 <span className="quick-action-icon">+</span>
                 <span className="quick-action-text">New Order</span>
               </button>
+              <button className="quick-action-btn" onClick={() => navigate('/enquiries')}>
+                <span className="quick-action-icon">?</span>
+                <span className="quick-action-text">Product Enquiry</span>
+              </button>
               <button className="quick-action-btn" onClick={() => navigate('/view-orders')}>
                 <span className="quick-action-icon">#</span>
                 <span className="quick-action-text">View Orders</span>

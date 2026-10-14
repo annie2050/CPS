@@ -16,6 +16,7 @@ function Sidebar() {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'D', path: '/dashboard' },
     { id: 'orderbooking', label: 'New Order', icon: '+', path: '/orderbooking' },
+    { id: 'enquiries', label: 'Product Enquiry', icon: '?', path: '/enquiries' },
     { id: 'reports', label: 'Report Complaint', icon: '!', path: '/reports' },
   ]
 

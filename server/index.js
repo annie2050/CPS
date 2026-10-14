@@ -41,6 +41,7 @@ app.use((req, res, next) => {
   app.use('/api/dashboard', require('./routes/dashboardRoutes'));
   app.use('/api/orderbooking', require('./routes/orderbookingRoutes'));
   app.use('/api/reports', require('./routes/reportRoutes'));
+  app.use('/api/enquiries', require('./routes/enquiryRoutes'));
   // Profile endpoints
   app.use('/api/profile', require('./routes/profile'));
   app.use('/api/users', require('./routes/userManagement'));

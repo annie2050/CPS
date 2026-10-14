@@ -10,6 +10,7 @@ const ViewOrders = lazy(() => import('./pages/ViewOrders'))
 const OrderStatus = lazy(() => import('./pages/OrderStatus'))
 const NewOrder = lazy(() => import('./pages/NewOrder'))
 const ReportComplaint = lazy(() => import('./pages/ReportComplaint'))
+const ProductEnquiries = lazy(() => import('./pages/ProductEnquiries'))
 const UserManagement = lazy(() => import('./pages/UserManagement'))
 const AppDemo = lazy(() => import('./demo/AppDemo.jsx'))
 
@@ -107,6 +108,16 @@ function App() {
               element={
                 isAuthenticated ? (
                   <ReportComplaint />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/enquiries" 
+              element={
+                isAuthenticated ? (
+                  <ProductEnquiries />
                 ) : (
                   <Navigate to="/login" replace />
                 )

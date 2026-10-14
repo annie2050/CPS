@@ -101,20 +101,8 @@ function OrderBooking() {
   }, [formData.modeOfPayment])
 
   useEffect(() => {
-    const parseDays = (daysStr) => {
-      if (daysStr === 'Immediate') return 0
-      const match = daysStr.match(/(\d+)/)
-      return match ? parseInt(match[1], 10) : 0
-    }
-
-    if (baseRate > 0 && formData.paymentDays) {
-      const days = parseDays(formData.paymentDays)
-      const interest = baseRate * 0.18 * (days / 365)
-      setRate(parseFloat((baseRate + interest).toFixed(2)))
-    } else {
-      setRate(baseRate)
-    }
-  }, [baseRate, formData.paymentDays])
+    setRate(baseRate)
+  }, [baseRate])
 
   useEffect(() => {
     async function fetchRate() {
